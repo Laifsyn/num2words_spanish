@@ -1,5 +1,6 @@
 mod lang;
 mod en;
+mod es;
 mod fr;
 mod uk;
 
