@@ -1,0 +1,33 @@
+{
+	"name": "Codespaces Rust Starter",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"cschleiden.vscode-github-actions",
+				"ms-vsliveshare.vsliveshare",
+				"matklad.rust-analyzer",
+				"serayuzgur.crates",
+				"vadimcn.vscode-lldb",
+
+				"GitHub.copilot",
+				"rust-lang.rust-analyzer",
+				"serayuzgur.crates",
+				"zhuangtongfa.material-theme",
+				"usernamehw.errorlens",
+				"tamasfe.even-better-toml",
+				"formulahendry.code-runner"
+			],
+			"settings": {
+				"workbench.colorTheme": "One Dark Pro Mix",
+				"editor.formatOnSave": true,
+				"editor.inlayHints.enabled": "offUnlessPressed",
+				"terminal.integrated.shell.linux": "/usr/bin/zsh",
+				"files.exclude": {
+					"**/CODE_OF_CONDUCT.md": true,
+					"**/LICENSE": true
+				}
+			}
+		}
+	},
+	"dockerFile": "Dockerfile"
+}

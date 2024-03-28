@@ -20,5 +20,9 @@ path = "src/lib.rs"
 name = "num2words"
 path = "src/bin/bin.rs"
 
+[[bin]]
+name = "test_es_num"
+path = "src/main.rs"
+
 [dependencies]
 num-bigfloat = { version = "^1.7.1", default-features = false }
