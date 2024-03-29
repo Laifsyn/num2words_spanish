@@ -114,7 +114,7 @@
 mod num2words;
 
 mod currency;
-mod lang;
+pub mod lang; // TODO: remove pub visibility before merging
 mod output;
 
 pub use crate::num2words::{Num2Err, Num2Words};

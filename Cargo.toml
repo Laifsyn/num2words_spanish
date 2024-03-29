@@ -21,7 +21,7 @@ name = "num2words"
 path = "src/bin/bin.rs"
 
 [[bin]]
-name = "test_es_num"
+name = "test_es"
 path = "src/main.rs"
 
 [dependencies]
