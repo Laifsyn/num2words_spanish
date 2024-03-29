@@ -51,6 +51,8 @@ pub enum Lang {
     /// );
     /// ```
     French_CH,
+    // //TODO: add spanish parity
+    // Spanish,
     /// ```
     /// use num2words::{Num2Words, Lang};
     /// assert_eq!(
@@ -88,10 +90,7 @@ impl FromStr for Lang {
 pub fn to_language(lang: Lang, preferences: Vec<String>) -> Box<dyn Language> {
     match lang {
         Lang::English => {
-            let last = preferences
-                .iter()
-                .rev()
-                .find(|v| ["oh", "nil"].contains(&v.as_str()));
+            let last = preferences.iter().rev().find(|v| ["oh", "nil"].contains(&v.as_str()));
 
             if let Some(v) = last {
                 return Box::new(lang::English::new(v == "oh", v == "nil"));
@@ -106,7 +105,9 @@ pub fn to_language(lang: Lang, preferences: Vec<String>) -> Box<dyn Language> {
                 .is_some();
             let reformed = preferences
                 .iter()
-                .find(|v: &&String| ["reformed", "1990", "rectifié", "rectification"].contains(&v.as_str()))
+                .find(|v: &&String| {
+                    ["reformed", "1990", "rectifié", "rectification"].contains(&v.as_str())
+                })
                 .is_some();
 
             Box::new(lang::French::new(feminine, reformed, lang::fr::RegionFrench::FR))
@@ -118,7 +119,9 @@ pub fn to_language(lang: Lang, preferences: Vec<String>) -> Box<dyn Language> {
                 .is_some();
             let reformed = preferences
                 .iter()
-                .find(|v: &&String| ["reformed", "1990", "rectifié", "rectification"].contains(&v.as_str()))
+                .find(|v: &&String| {
+                    ["reformed", "1990", "rectifié", "rectification"].contains(&v.as_str())
+                })
                 .is_some();
 
             Box::new(lang::French::new(feminine, reformed, lang::fr::RegionFrench::BE))
@@ -130,27 +133,20 @@ pub fn to_language(lang: Lang, preferences: Vec<String>) -> Box<dyn Language> {
                 .is_some();
             let reformed = preferences
                 .iter()
-                .find(|v: &&String| ["reformed", "1990", "rectifié", "rectification"].contains(&v.as_str()))
+                .find(|v: &&String| {
+                    ["reformed", "1990", "rectifié", "rectification"].contains(&v.as_str())
+                })
                 .is_some();
 
             Box::new(lang::French::new(feminine, reformed, lang::fr::RegionFrench::CH))
         }
         Lang::Ukrainian => {
-            let declension: lang::uk::Declension = preferences
-                .iter()
-                .rev()
-                .find_map(|d| d.parse().ok())
-                .unwrap_or_default();
-            let gender: lang::uk::Gender = preferences
-                .iter()
-                .rev()
-                .find_map(|d| d.parse().ok())
-                .unwrap_or_default();
-            let number: lang::uk::GrammaticalNumber = preferences
-                .iter()
-                .rev()
-                .find_map(|d| d.parse().ok())
-                .unwrap_or_default();
+            let declension: lang::uk::Declension =
+                preferences.iter().rev().find_map(|d| d.parse().ok()).unwrap_or_default();
+            let gender: lang::uk::Gender =
+                preferences.iter().rev().find_map(|d| d.parse().ok()).unwrap_or_default();
+            let number: lang::uk::GrammaticalNumber =
+                preferences.iter().rev().find_map(|d| d.parse().ok()).unwrap_or_default();
             Box::new(lang::Ukrainian::new(gender, number, declension))
         }
     }
