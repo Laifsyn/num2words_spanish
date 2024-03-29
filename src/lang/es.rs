@@ -184,7 +184,7 @@ impl Spanish {
         }
 
         let mut words = vec![];
-        for (i, triplet) in self.en_miles(num).iter().enumerate().rev() {
+        for (i, triplet) in self.en_miles(num).into_iter().enumerate().rev() {
             let hundreds = ((triplet / 100) % 10) as usize;
             let tens = ((triplet / 10) % 10) as usize;
             let units = (triplet % 10) as usize;
@@ -203,12 +203,12 @@ impl Spanish {
                     // case `1_001_000` => `un millón mil` instead of `un millón un mil`
                     // Explanation: Second second triplet is always read as thousand, so we
                     // don't need to say "un mil"
-                    (_, 1) if triplet == &1 => "",
+                    (_, 1) if triplet == 1 => "",
                     // case `001_001_100...` => `un billón un millón cien mil...` instead of
                     // `uno billón uno millón cien mil...`
                     // All `triplets == 1`` can can be named as "un". except for first or second
                     // triplet
-                    (_, index) if index != 0 && *triplet == 1 => "un",
+                    (_, index) if index != 0 && triplet == 1 => "un",
                     _ => UNIDADES[units],
                 };
 
@@ -236,12 +236,12 @@ impl Spanish {
             }
 
             // Add the next Milliard if there's any.
-            if i != 0 && triplet != &0 {
+            if i != 0 && triplet != 0 {
                 if i > MILLARES.len() - 1 {
                     return Err(Num2Err::CannotConvert);
                 }
                 // Boolean that checks if next Milliard is plural
-                let plural = *triplet != 1;
+                let plural = triplet != 1;
                 match plural {
                     false => words.push(String::from(MILLAR[i])),
                     true => words.push(String::from(MILLARES[i])),
