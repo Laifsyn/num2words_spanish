@@ -1,6 +1,8 @@
 use core::fmt::{self, Formatter};
 use std::convert::TryInto;
 use std::fmt::Display;
+
+use num_bigfloat::BigFloat;
 // Reference that can hopefully be implemented seamlessly: https://es.wikipedia.org/wiki/Anexo:Nombres_de_los_n%C3%BAmeros_en_espa%C3%B1ol
 const UNIDADES: [&str; 10] =
     ["", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve"];
@@ -105,9 +107,12 @@ const MILLAR: [&str; MILLAR_SIZE] = [
 ];
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub struct Spanish {
+    /// Negative flavour like "bajo cero", "menos", "negativo"
     neg_flavour: NegativeFlavour,
+    // Writes the number as "veintiocho" instead of "veinte y ocho" in case of true
+    veinti: bool,
 }
-#[allow(dead_code)]
+
 #[derive(Default, Clone, Debug, PartialEq, Eq)]
 pub enum NegativeFlavour {
     #[default]
@@ -127,8 +132,28 @@ impl Display for NegativeFlavour {
 }
 
 impl Spanish {
-    pub fn set_neg_flavour(&mut self, flavour: NegativeFlavour) {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn set_veinti(&mut self, veinti: bool) -> &mut Self {
+        self.veinti = veinti;
+        self
+    }
+
+    pub fn set_neg_flavour(&mut self, flavour: NegativeFlavour) -> &mut Self {
         self.neg_flavour = flavour;
+        self
+    }
+
+    pub fn with_neg_flavour(mut self, flavour: NegativeFlavour) -> Self {
+        self.neg_flavour = flavour;
+        self
+    }
+
+    pub fn with_veinti(mut self, veinti: bool) -> Self {
+        self.veinti = veinti;
+        self
     }
 
     fn en_miles(&self, mut num: i128) -> Vec<u16> {
@@ -184,6 +209,12 @@ impl Spanish {
                     // case `?_119` => `? ciento diecinueve`
                     // case `?_110` => `? ciento diez`
                     1 => words.push(String::from(DIECIS[units])),
+                    2 if self.veinti && units != 0 => match units {
+                        // TODO:add accent if you can not support ASCII and want to be grammatically
+                        1 if i != 0 => words.push(String::from("veintiun")),
+                        _ => words.push(String::from("veinti") + unit_word),
+                    },
+                    // 2 if self.veinti && units == 1 => words.push(String::from("veintiun")),
                     _ => {
                         // case `?_142 => `? cuarenta y dos`
                         let ten = DECENAS[tens];
@@ -294,9 +325,18 @@ mod tests {
         // consequently should never contain " un " as substring anywhere unless proven otherwise
         assert_ne!(
             es.to_cardinal(171_031_041_031).unwrap(),
-            "ciento setenta y un billones treinta y un millones cuarenta y un mil treinta y uno"
+            "ciento setenta y un billones treinta y un millones cuarenta y un mil treinta y uno",
         );
         assert!(!es.to_cardinal(171_031_041_031).unwrap().contains(" un "));
+        // with veinti flavour
+        let es = es.with_veinti(true);
+
+        assert_eq!(
+            es.to_cardinal(21_021_321_021).unwrap(),
+            "veintiun billones veintiun millones trescientos veintiun mil veintiuno"
+        );
+        assert_eq!(es.to_cardinal(22_000_000).unwrap(), "veintidos millones");
+        assert_eq!(es.to_cardinal(20_020_020).unwrap(), "veinte millones veinte mil veinte");
     }
     #[test]
     fn lang_es_millions() {
