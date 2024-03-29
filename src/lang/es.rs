@@ -4,6 +4,8 @@ use std::fmt::Display;
 // Reference that can hopefully be implemented seamlessly: https://es.wikipedia.org/wiki/Anexo:Nombres_de_los_n%C3%BAmeros_en_espa%C3%B1ol
 const UNIDADES: [&str; 10] =
     ["", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve"];
+const UNIDADES: [&str; 10] =
+    ["", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve"];
 // Decenas que son entre 11 y 19
 const DIECIS: [&str; 10] = [
     "diez", // Needed for cases like 10, 10_000 and 10_000_000
@@ -20,6 +22,7 @@ const DIECIS: [&str; 10] = [
 // Saltos en decenas
 const DECENAS: [&str; 10] = [
     "",
+    "", // This actually never gets called, but if so, it probably should be "diez"
     "", // This actually never gets called, but if so, it probably should be "diez"
     "veinte",
     "treinta",
@@ -46,8 +49,11 @@ const CENTENAS: [&str; 10] = [
 ];
 // To ensure both arrays doesn't desync
 const MILLAR_SIZE: usize = 22;
+const MILLAR_SIZE: usize = 22;
 /// from source: https://es.wikipedia.org/wiki/Anexo:Nombres_de_los_n%C3%BAmeros_en_espa%C3%B1ol
 /// Based on https://en.wikipedia.org/wiki/Names_of_large_numbers, each thousands is from the Short Scales,
+/// which each thousands can be defined as 10^(3n+3) magnitude, where n is replaced by the index of
+/// the Array. For example 10^3 = Thousands (starts at n=1 here)
 /// which each thousands can be defined as 10^(3n+3) magnitude, where n is replaced by the index of
 /// the Array. For example 10^3 = Thousands (starts at n=1 here)
 /// 10^6 = Millions
@@ -63,6 +69,7 @@ const MILLARES: [&str; MILLAR_SIZE] = [
     "cuatrillones",
     "quintillones",
     "sextillones",
+    "septillones",
     "septillones",
     "octillones",
     "nonillones",
@@ -88,6 +95,7 @@ const MILLAR: [&str; MILLAR_SIZE] = [
     "cuatrillón",
     "quintillón",
     "sextillón",
+    "septillón",
     "septillón",
     "octillón",
     "nonillón",
@@ -126,7 +134,35 @@ impl Display for NegativeFlavour {
     }
 }
 
+#[derive(Clone, Default, Debug, PartialEq, Eq)]
+pub struct Spanish {
+    neg_flavour: NegativeFlavour,
+}
+#[allow(dead_code)]
+#[derive(Default, Clone, Debug, PartialEq, Eq)]
+pub enum NegativeFlavour {
+    #[default]
+    Prepended, // -1 => menos uno
+    Appended,  // -1 => uno negativo
+    BelowZero, // -1 => uno bajo cero
+}
+
+impl Display for NegativeFlavour {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            NegativeFlavour::Prepended => write!(f, "menos"),
+            NegativeFlavour::Appended => write!(f, "negativo"),
+            NegativeFlavour::BelowZero => write!(f, "bajo cero"),
+        }
+    }
+}
+
 impl Spanish {
+    pub fn set_neg_flavour(&mut self, flavour: NegativeFlavour) {
+        self.neg_flavour = flavour;
+    }
+
+    fn en_miles(&self, mut num: i128) -> Vec<u16> {
     pub fn set_neg_flavour(&mut self, flavour: NegativeFlavour) {
         self.neg_flavour = flavour;
     }
@@ -135,7 +171,10 @@ impl Spanish {
         let mut thousands = Vec::new();
         let mil = 1000;
         num = num.abs();
+        num = num.abs();
         while num != 0 {
+            // Insertar en Low Endian
+            thousands.push((num % mil).try_into().expect("triplet not under 1000"));
             // Insertar en Low Endian
             thousands.push((num % mil).try_into().expect("triplet not under 1000"));
             num /= mil; // DivAssign
@@ -147,10 +186,16 @@ impl Spanish {
         // for 0 case
         if num == 0 {
             return Ok(String::from("cero"));
+    pub fn to_cardinal(&self, num: i128) -> Result<String, String> {
+        // for 0 case
+        if num == 0 {
+            return Ok(String::from("cero"));
         }
 
         let mut words = vec![];
         for (i, triplet) in self.en_miles(num).iter().enumerate().rev() {
+            let hundreds = ((triplet / 100) % 10) as usize;
+            let tens = ((triplet / 10) % 10) as usize;
             let hundreds = ((triplet / 100) % 10) as usize;
             let tens = ((triplet / 10) % 10) as usize;
             let units = (triplet % 10) as usize;
@@ -201,7 +246,11 @@ impl Spanish {
             if i != 0 && triplet != &0 {
                 if i > MILLARES.len() - 1 {
                     return Err(format!("Número demasiado grande: {} - Maximo: {}", num, i32::MAX));
+                if i > MILLARES.len() - 1 {
+                    return Err(format!("Número demasiado grande: {} - Maximo: {}", num, i32::MAX));
                 }
+                // Boolean that checks if next Milliard is plural
+                let plural = *triplet != 1;
                 // Boolean that checks if next Milliard is plural
                 let plural = *triplet != 1;
                 match plural {
@@ -210,6 +259,17 @@ impl Spanish {
                 }
             }
         }
+        // flavour the text when negative
+        if let (flavour, true) = (&self.neg_flavour, num < 0) {
+            use NegativeFlavour::*;
+            let string = flavour.to_string();
+            match flavour {
+                Prepended => words.insert(0, string),
+                Appended => words.push(string),
+                BelowZero => words.push(string),
+            }
+        }
+
         // flavour the text when negative
         if let (flavour, true) = (&self.neg_flavour, num < 0) {
             use NegativeFlavour::*;
