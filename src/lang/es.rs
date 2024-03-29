@@ -162,41 +162,39 @@ impl Spanish {
                     _ => words.push(String::from(CENTENAS[hundreds])),
                 }
             }
-            'decenas: {
-                if tens != 0 || units != 0 {
-                    let unit_word = match (units, i) {
-                        // case `1_100` => `mil cien` instead of `un mil un cien`
-                        // case `1_001_000` => `un millón mil` instead of `un millón un mil`
-                        (_, 1) if triplet == &1 => break 'decenas,
-                        /*
-                        // TODO: uncomment this Match Arm if it's more correct to say "un millón mil" for 1_001_000
-                        (1, 1) => {
-                            // Early break to avoid "un millón un mil" which personally sounds unnatural
-                            break 'decenas;
-                        }, */
-                        // case `001_001_100...` => `un billón un millón cien mil...` instead of
-                        // `uno billón uno millón cien mil...`
-                        (_, index) if index != 0 && triplet == &1 => "un",
-                        _ => UNIDADES[units],
-                    };
 
-                    match tens {
-                        // case `?_102` => `? ciento dos`
-                        0 => words.push(String::from(unit_word)),
-                        // case `?_119` => `? ciento diecinueve`
-                        // case `?_110` => `? ciento diez`
-                        1 => words.push(String::from(DIECIS[units])),
-                        _ => {
-                            // case `?_142 => `? cuarenta y dos`
-                            let ten = DECENAS[tens];
-                            words.push(match units {
-                                0 => String::from(ten),
-                                _ => format!("{ten} y {unit_word}"),
-                            });
-                        }
+            if tens != 0 || units != 0 {
+                let unit_word = match (units, i) {
+                    // case `1_100` => `mil cien` instead of `un mil un cien`
+                    // case `1_001_000` => `un millón mil` instead of `un millón un mil`
+                    // Explanation: Second second triplet is always read as thousand, so we
+                    // don't need to say "un mil"
+                    (_, 1) if triplet == &1 => "",
+                    // case `001_001_100...` => `un billón un millón cien mil...` instead of
+                    // `uno billón uno millón cien mil...`
+                    // All `triplets == 1`` can can be named as "un". except for first or second
+                    // triplet
+                    (_, index) if index != 0 && *triplet == 1 => "un",
+                    _ => UNIDADES[units],
+                };
+
+                match tens {
+                    // case `?_102` => `? ciento dos`
+                    0 => words.push(String::from(unit_word)),
+                    // case `?_119` => `? ciento diecinueve`
+                    // case `?_110` => `? ciento diez`
+                    1 => words.push(String::from(DIECIS[units])),
+                    _ => {
+                        // case `?_142 => `? cuarenta y dos`
+                        let ten = DECENAS[tens];
+                        words.push(match units {
+                            0 => String::from(ten),
+                            _ => format!("{ten} y {unit_word}"),
+                        });
                     }
                 }
             }
+
             // Add the next Milliard if there's any.
             if i != 0 && triplet != &0 {
                 if i > MILLARES.len() - 1 {
@@ -221,7 +219,11 @@ impl Spanish {
             }
         }
 
-        Ok(words.join(" "))
+        Ok(words
+            .into_iter()
+            .filter_map(|word| (!word.is_empty()).then_some(word))
+            .collect::<Vec<_>>()
+            .join(" "))
     }
 }
 
@@ -265,6 +267,37 @@ mod tests {
         assert_eq!(es.to_cardinal(800_000).unwrap(), "ochocientos mil");
     }
 
+    #[test]
+    fn lang_es_test_by_concept_to_cardinal_method() {
+        // This might make other tests trivial
+        let es = Spanish::default();
+        // Triplet == 1 inserts following milliard in singular
+        assert_eq!(es.to_cardinal(1_001_001_000).unwrap(), "un billón un millón mil");
+        // Triplet != 1 inserts following milliard in plural
+        assert_eq!(es.to_cardinal(2_002_002_000).unwrap(), "dos billones dos millones dos mil");
+        // Thousand's milliard is singular
+        assert_eq!(es.to_cardinal(1_100).unwrap(), "mil cien");
+        // Thousand's milliard is plural
+        assert_eq!(es.to_cardinal(2_100).unwrap(), "dos mil cien");
+        // Cardinal number ending in 1 always ends with "uno"
+        assert!(es.to_cardinal(12_313_213_556_451_233_521_251).unwrap().ends_with("uno"));
+        // triplet with value "10"
+        assert_eq!(es.to_cardinal(110_010_000).unwrap(), "ciento diez millones diez mil");
+        // Triplets ending in 1 but higher than 30, is "uno"
+        // "un" is reserved for triplet == 1 in magnitudes higher than 10^3 like "un millón"
+        // or "un trillón"
+        assert_eq!(
+            es.to_cardinal(171_031_041_031).unwrap(),
+            "ciento setenta y uno billones treinta y uno millones cuarenta y uno mil treinta y uno"
+        );
+        // Triplets ending in 1 but higher than 30, is never "un"
+        // consequently should never contain " un " as substring anywhere unless proven otherwise
+        assert_ne!(
+            es.to_cardinal(171_031_041_031).unwrap(),
+            "ciento setenta y un billones treinta y un millones cuarenta y un mil treinta y uno"
+        );
+        assert!(!es.to_cardinal(171_031_041_031).unwrap().contains(" un "));
+    }
     #[test]
     fn lang_es_millions() {
         let es = Spanish::default();
