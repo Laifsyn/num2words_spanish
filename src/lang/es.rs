@@ -116,7 +116,8 @@ pub struct Spanish {
     veinti: bool,
 }
 
-#[derive(Default, Clone, Debug, PartialEq, Eq)]
+// TODO: Remove Copy trait if enums can store data
+#[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum NegativeFlavour {
     #[default]
     Prepended, // -1 => menos uno
@@ -124,6 +125,10 @@ pub enum NegativeFlavour {
     BelowZero, // -1 => uno bajo cero
 }
 
+pub enum DecimalSeparator {
+    Coma,
+    Punto,
+}
 impl Display for NegativeFlavour {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
@@ -177,7 +182,7 @@ impl Spanish {
         thousands
     }
 
-    pub fn to_cardinal(&self, num: BigFloat) -> Result<String, Num2Err> {
+    pub fn to_int_cardinal(&self, num: BigFloat) -> Result<String, Num2Err> {
         // for 0 case
         if num.is_zero() {
             return Ok(String::from("cero"));
@@ -250,20 +255,37 @@ impl Spanish {
         }
         // flavour the text when negative
         if let (flavour, true) = (&self.neg_flavour, num.is_negative()) {
-            use NegativeFlavour::*;
-            let string = flavour.to_string();
-            match flavour {
-                Prepended => words.insert(0, string),
-                Appended => words.push(string),
-                BelowZero => words.push(string),
-            }
+            self.flavourize_with_negative(&mut words, *flavour)
         }
 
         Ok(words
             .into_iter()
             .filter_map(|word| (!word.is_empty()).then_some(word))
-            .collect::<Vec<_>>()
+            .collect::<Vec<String>>()
             .join(" "))
+    }
+
+    fn to_cardinal(&self, num: BigFloat) -> Result<String, Num2Err> {
+        unimplemented!()
+    }
+
+    fn to_float_cardinal(&self, num: BigFloat) -> Result<String, Num2Err> {
+        unimplemented!()
+    }
+
+    fn fractio_cardinal(&self, num: BigFloat) -> Result<String, Num2Err> {
+        unimplemented!()
+    }
+
+    // TODO: Refactor away if it only has a single callsite
+    fn flavourize_with_negative(&self, words: &mut Vec<String>, flavour: NegativeFlavour) {
+        use NegativeFlavour::*;
+        let string = flavour.to_string();
+        match flavour {
+            Prepended => words.insert(0, string),
+            Appended => words.push(string),
+            BelowZero => words.push(string),
+        }
     }
 }
 
@@ -277,40 +299,43 @@ mod tests {
     #[test]
     fn lang_es_sub_thousands() {
         let es = Spanish::default();
-        assert_eq!(es.to_cardinal(to(000)).unwrap(), "cero");
-        assert_eq!(es.to_cardinal(to(10)).unwrap(), "diez");
-        assert_eq!(es.to_cardinal(to(100)).unwrap(), "cien");
-        assert_eq!(es.to_cardinal(to(101)).unwrap(), "ciento uno");
-        assert_eq!(es.to_cardinal(to(110)).unwrap(), "ciento diez");
-        assert_eq!(es.to_cardinal(to(111)).unwrap(), "ciento once");
-        assert_eq!(es.to_cardinal(to(141)).unwrap(), "ciento cuarenta y uno");
-        assert_eq!(es.to_cardinal(to(142)).unwrap(), "ciento cuarenta y dos");
-        assert_eq!(es.to_cardinal(to(800)).unwrap(), "ochocientos");
+        assert_eq!(es.to_int_cardinal(to(000)).unwrap(), "cero");
+        assert_eq!(es.to_int_cardinal(to(10)).unwrap(), "diez");
+        assert_eq!(es.to_int_cardinal(to(100)).unwrap(), "cien");
+        assert_eq!(es.to_int_cardinal(to(101)).unwrap(), "ciento uno");
+        assert_eq!(es.to_int_cardinal(to(110)).unwrap(), "ciento diez");
+        assert_eq!(es.to_int_cardinal(to(111)).unwrap(), "ciento once");
+        assert_eq!(es.to_int_cardinal(to(141)).unwrap(), "ciento cuarenta y uno");
+        assert_eq!(es.to_int_cardinal(to(142)).unwrap(), "ciento cuarenta y dos");
+        assert_eq!(es.to_int_cardinal(to(800)).unwrap(), "ochocientos");
     }
 
     #[test]
     fn lang_es_thousands() {
         let es = Spanish::default();
         // When thousands triplet is 1
-        assert_eq!(es.to_cardinal(to(1_000)).unwrap(), "mil");
-        assert_eq!(es.to_cardinal(to(1_010)).unwrap(), "mil diez");
-        assert_eq!(es.to_cardinal(to(1_100)).unwrap(), "mil cien");
-        assert_eq!(es.to_cardinal(to(1_101)).unwrap(), "mil ciento uno");
-        assert_eq!(es.to_cardinal(to(1_110)).unwrap(), "mil ciento diez");
-        assert_eq!(es.to_cardinal(to(1_111)).unwrap(), "mil ciento once");
-        assert_eq!(es.to_cardinal(to(1_141)).unwrap(), "mil ciento cuarenta y uno");
+        assert_eq!(es.to_int_cardinal(to(1_000)).unwrap(), "mil");
+        assert_eq!(es.to_int_cardinal(to(1_010)).unwrap(), "mil diez");
+        assert_eq!(es.to_int_cardinal(to(1_100)).unwrap(), "mil cien");
+        assert_eq!(es.to_int_cardinal(to(1_101)).unwrap(), "mil ciento uno");
+        assert_eq!(es.to_int_cardinal(to(1_110)).unwrap(), "mil ciento diez");
+        assert_eq!(es.to_int_cardinal(to(1_111)).unwrap(), "mil ciento once");
+        assert_eq!(es.to_int_cardinal(to(1_141)).unwrap(), "mil ciento cuarenta y uno");
         // When thousands triplet isn't 1
-        assert_eq!(es.to_cardinal(to(2_000)).unwrap(), "dos mil");
-        assert_eq!(es.to_cardinal(to(12_010)).unwrap(), "doce mil diez");
-        assert_eq!(es.to_cardinal(to(140_100)).unwrap(), "ciento cuarenta mil cien");
-        assert_eq!(es.to_cardinal(to(141_101)).unwrap(), "ciento cuarenta y uno mil ciento uno");
-        assert_eq!(es.to_cardinal(to(142_002)).unwrap(), "ciento cuarenta y dos mil dos");
-        assert_eq!(es.to_cardinal(to(142_000)).unwrap(), "ciento cuarenta y dos mil");
+        assert_eq!(es.to_int_cardinal(to(2_000)).unwrap(), "dos mil");
+        assert_eq!(es.to_int_cardinal(to(12_010)).unwrap(), "doce mil diez");
+        assert_eq!(es.to_int_cardinal(to(140_100)).unwrap(), "ciento cuarenta mil cien");
         assert_eq!(
-            es.to_cardinal(to(888_111)).unwrap(),
+            es.to_int_cardinal(to(141_101)).unwrap(),
+            "ciento cuarenta y uno mil ciento uno"
+        );
+        assert_eq!(es.to_int_cardinal(to(142_002)).unwrap(), "ciento cuarenta y dos mil dos");
+        assert_eq!(es.to_int_cardinal(to(142_000)).unwrap(), "ciento cuarenta y dos mil");
+        assert_eq!(
+            es.to_int_cardinal(to(888_111)).unwrap(),
             "ochocientos ochenta y ocho mil ciento once"
         );
-        assert_eq!(es.to_cardinal(to(800_000)).unwrap(), "ochocientos mil");
+        assert_eq!(es.to_int_cardinal(to(800_000)).unwrap(), "ochocientos mil");
     }
 
     #[test]
@@ -318,65 +343,80 @@ mod tests {
         // This might make other tests trivial
         let es = Spanish::default();
         // Triplet == 1 inserts following milliard in singular
-        assert_eq!(es.to_cardinal(to(1_001_001_000)).unwrap(), "un billón un millón mil");
+        assert_eq!(es.to_int_cardinal(to(1_001_001_000)).unwrap(), "un billón un millón mil");
         // Triplet != 1 inserts following milliard in plural
-        assert_eq!(es.to_cardinal(to(2_002_002_000)).unwrap(), "dos billones dos millones dos mil");
+        assert_eq!(
+            es.to_int_cardinal(to(2_002_002_000)).unwrap(),
+            "dos billones dos millones dos mil"
+        );
         // Thousand's milliard is singular
-        assert_eq!(es.to_cardinal(to(1_100)).unwrap(), "mil cien");
+        assert_eq!(es.to_int_cardinal(to(1_100)).unwrap(), "mil cien");
         // Thousand's milliard is plural
-        assert_eq!(es.to_cardinal(to(2_100)).unwrap(), "dos mil cien");
+        assert_eq!(es.to_int_cardinal(to(2_100)).unwrap(), "dos mil cien");
         // Cardinal number ending in 1 always ends with "uno"
-        assert!(es.to_cardinal(to(12_233_521_251)).unwrap().ends_with("uno"));
+        assert!(es.to_int_cardinal(to(12_233_521_251)).unwrap().ends_with("uno"));
         // triplet with value "10"
-        assert_eq!(es.to_cardinal(to(110_010_000)).unwrap(), "ciento diez millones diez mil");
+        assert_eq!(es.to_int_cardinal(to(110_010_000)).unwrap(), "ciento diez millones diez mil");
         // Triplets ending in 1 but higher than 30, is "uno"
         // "un" is reserved for triplet == 1 in magnitudes higher than 10^3 like "un millón"
         // or "un trillón"
         assert_eq!(
-            es.to_cardinal(to(171_031_041_031)).unwrap(),
+            es.to_int_cardinal(to(171_031_041_031)).unwrap(),
             "ciento setenta y uno billones treinta y uno millones cuarenta y uno mil treinta y uno"
         );
         // Triplets ending in 1 but higher than 30, is never "un"
         // consequently should never contain " un " as substring anywhere unless proven otherwise
         assert_ne!(
-            es.to_cardinal(to(171_031_041_031)).unwrap(),
+            es.to_int_cardinal(to(171_031_041_031)).unwrap(),
             "ciento setenta y un billones treinta y un millones cuarenta y un mil treinta y uno",
         );
-        assert!(!es.to_cardinal(to(171_031_041_031)).unwrap().contains(" un "));
+        assert!(!es.to_int_cardinal(to(171_031_041_031)).unwrap().contains(" un "));
         // with veinti flavour
         let es = es.with_veinti(true);
 
         assert_eq!(
-            es.to_cardinal(to(21_021_321_021)).unwrap(),
+            es.to_int_cardinal(to(21_021_321_021)).unwrap(),
             "veintiun billones veintiun millones trescientos veintiun mil veintiuno"
         );
-        assert_eq!(es.to_cardinal(to(22_000_000)).unwrap(), "veintidos millones");
-        assert_eq!(es.to_cardinal(to(20_020_020)).unwrap(), "veinte millones veinte mil veinte");
+        assert_eq!(es.to_int_cardinal(to(22_000_000)).unwrap(), "veintidos millones");
+        assert_eq!(
+            es.to_int_cardinal(to(20_020_020)).unwrap(),
+            "veinte millones veinte mil veinte"
+        );
     }
     #[test]
     fn lang_es_millions() {
         let es = Spanish::default();
         // When thousands triplet is 1
-        assert_eq!(es.to_cardinal(to(1_001_000)).unwrap(), "un millón mil");
-        assert_eq!(es.to_cardinal(to(10_001_010)).unwrap(), "diez millones mil diez");
-        assert_eq!(es.to_cardinal(to(19_001_010)).unwrap(), "diecinueve millones mil diez");
-        assert_eq!(es.to_cardinal(to(801_001_001)).unwrap(), "ochocientos uno millones mil uno");
-        assert_eq!(es.to_cardinal(to(800_001_001)).unwrap(), "ochocientos millones mil uno");
-        // when thousands triplet isn't 1
-        assert_eq!(es.to_cardinal(to(1_002_010)).unwrap(), "un millón dos mil diez");
-        assert_eq!(es.to_cardinal(to(10_002_010)).unwrap(), "diez millones dos mil diez");
+        assert_eq!(es.to_int_cardinal(to(1_001_000)).unwrap(), "un millón mil");
+        assert_eq!(es.to_int_cardinal(to(10_001_010)).unwrap(), "diez millones mil diez");
+        assert_eq!(es.to_int_cardinal(to(19_001_010)).unwrap(), "diecinueve millones mil diez");
         assert_eq!(
-            es.to_cardinal(to(19_102_010)).unwrap(),
+            es.to_int_cardinal(to(801_001_001)).unwrap(),
+            "ochocientos uno millones mil uno"
+        );
+        assert_eq!(es.to_int_cardinal(to(800_001_001)).unwrap(), "ochocientos millones mil uno");
+        // when thousands triplet isn't 1
+        assert_eq!(es.to_int_cardinal(to(1_002_010)).unwrap(), "un millón dos mil diez");
+        assert_eq!(es.to_int_cardinal(to(10_002_010)).unwrap(), "diez millones dos mil diez");
+        assert_eq!(
+            es.to_int_cardinal(to(19_102_010)).unwrap(),
             "diecinueve millones ciento dos mil diez"
         );
-        assert_eq!(es.to_cardinal(to(800_100_001)).unwrap(), "ochocientos millones cien mil uno");
         assert_eq!(
-            es.to_cardinal(to(801_021_001)).unwrap(),
+            es.to_int_cardinal(to(800_100_001)).unwrap(),
+            "ochocientos millones cien mil uno"
+        );
+        assert_eq!(
+            es.to_int_cardinal(to(801_021_001)).unwrap(),
             "ochocientos uno millones veinte y uno mil uno"
         );
-        assert_eq!(es.to_cardinal(to(1_000_000)).unwrap(), "un millón");
-        assert_eq!(es.to_cardinal(to(1_000_000_000)).unwrap(), "un billón");
-        assert_eq!(es.to_cardinal(to(1_001_100_001)).unwrap(), "un billón un millón cien mil uno");
+        assert_eq!(es.to_int_cardinal(to(1_000_000)).unwrap(), "un millón");
+        assert_eq!(es.to_int_cardinal(to(1_000_000_000)).unwrap(), "un billón");
+        assert_eq!(
+            es.to_int_cardinal(to(1_001_100_001)).unwrap(),
+            "un billón un millón cien mil uno"
+        );
     }
 
     #[test]
@@ -391,26 +431,26 @@ mod tests {
 
         use NegativeFlavour::*;
         es.set_neg_flavour(Appended);
-        assert_eq!(es.to_cardinal((-1).into()).unwrap(), "uno negativo");
-        assert_eq!(es.to_cardinal((-1_000_000).into()).unwrap(), "un millón negativo");
+        assert_eq!(es.to_int_cardinal((-1).into()).unwrap(), "uno negativo");
+        assert_eq!(es.to_int_cardinal((-1_000_000).into()).unwrap(), "un millón negativo");
         assert_eq!(
-            es.to_cardinal((-1_020_010_000).into()).unwrap(),
+            es.to_int_cardinal((-1_020_010_000).into()).unwrap(),
             "un billón veinte millones diez mil negativo"
         );
 
         es.set_neg_flavour(Prepended);
-        assert_eq!(es.to_cardinal((-1).into()).unwrap(), "menos uno");
-        assert_eq!(es.to_cardinal((-1_000_000).into()).unwrap(), "menos un millón");
+        assert_eq!(es.to_int_cardinal((-1).into()).unwrap(), "menos uno");
+        assert_eq!(es.to_int_cardinal((-1_000_000).into()).unwrap(), "menos un millón");
         assert_eq!(
-            es.to_cardinal((-1_020_010_000).into()).unwrap(),
+            es.to_int_cardinal((-1_020_010_000).into()).unwrap(),
             "menos un billón veinte millones diez mil"
         );
 
         es.set_neg_flavour(BelowZero);
-        assert_eq!(es.to_cardinal((-1).into()).unwrap(), "uno bajo cero");
-        assert_eq!(es.to_cardinal((-1_000_000).into()).unwrap(), "un millón bajo cero");
+        assert_eq!(es.to_int_cardinal((-1).into()).unwrap(), "uno bajo cero");
+        assert_eq!(es.to_int_cardinal((-1_000_000).into()).unwrap(), "un millón bajo cero");
         assert_eq!(
-            es.to_cardinal((-1_020_010_000).into()).unwrap(),
+            es.to_int_cardinal((-1_020_010_000).into()).unwrap(),
             "un billón veinte millones diez mil bajo cero"
         );
     }
@@ -422,8 +462,8 @@ mod tests {
         for flavour in [Prepended, Appended, BelowZero] {
             es.set_neg_flavour(flavour);
             for value in VALUES.iter().cloned() {
-                let positive = es.to_cardinal(to(value).abs()).unwrap();
-                let negative = es.to_cardinal(-to(value).abs()).unwrap();
+                let positive = es.to_int_cardinal(to(value).abs()).unwrap();
+                let negative = es.to_int_cardinal(-to(value).abs()).unwrap();
                 assert!(
                     negative.contains(positive.as_str()),
                     "{} !contains {}",
