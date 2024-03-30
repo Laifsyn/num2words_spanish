@@ -4,13 +4,18 @@ use num2words::lang::Spanish;
 use num_bigfloat::BigFloat;
 pub fn main() {
     let es = Spanish::default();
-    println!("Resultado {:?}", es.to_int_cardinal(1_002_002_031.into()));
-    println!("Resultado {:?}", es.to_int_cardinal((-1_010_001_031).into()));
-    println!("Resultado {:?}", es.to_int_cardinal(1_001_021_031.into()));
+    println!("Resultado {:?}", es.to_cardinal(1_002_002_031.into()));
+    println!("Resultado {:?}", es.to_cardinal((-1_010_001_031).into()));
+    println!("Resultado {:?}", es.to_cardinal((1_001_021_031.512).into()));
 
-    let e = BigFloat::from(215.25f64);
+    let mut e = BigFloat::from(215.2512f64);
     // println!("{:?}\n{:?}\n{:?}", e, e.frac(), e.int());
-    println!("\n\n{}\nfrac: {}\nint : {}\n\n", e, e.frac(), e.int());
+    let mut frac = e.frac();
+    e *= BigFloat::from(100);
+    frac *= BigFloat::from(10);
+    println!("\n\n{}\nfrac: {}\nint : {}\n", e, e.frac(), e.int());
+    println!("{}\nfrac: {}\nint : {}\n\n", frac, frac, frac.int());
+
     println!("{}", e.frac().rem(&(10.into())));
     println!("{}", e.frac().rem(&(100.into())));
     // let mut input = String::new();
