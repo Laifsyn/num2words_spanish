@@ -5,6 +5,7 @@ use std::fmt::Display;
 
 use num_bigfloat::BigFloat;
 
+use super::Language;
 use crate::Num2Err;
 // Reference that can hopefully be implemented seamlessly: https://es.wikipedia.org/wiki/Anexo:Nombres_de_los_n%C3%BAmeros_en_espa%C3%B1ol
 const UNIDADES: [&str; 10] =
@@ -108,6 +109,72 @@ const MILLAR: [&str; MILLAR_SIZE] = [
     "novendecillón",
     "vigintillón",
 ];
+pub mod ordinal {
+    // Gender must be added at callsite
+    pub(super) const UNIDADES: [&str; 10] =
+        ["", "primer", "segund", "tercer", "cuart", "quint", "sext", "séptim", "octav", "noven"];
+    pub(super) const DECENAS: [&str; 10] = [
+        "",
+        "", // expects DIECIS to be called instead
+        "vigésimo",
+        "trigésimo",
+        "cuadragésimo",
+        "quincuagésimo",
+        "sexagésimo",
+        "septuagésimo",
+        "octogésimo",
+        "nonagésimo",
+    ];
+    // Gender must be added at callsite
+    pub(super) const DIECIS: [&str; 10] = [
+        "décim",
+        "undécim",  // `decimoprimero` is a valid word
+        "duodécim", // `décimosegundo` is a valid word
+        "decimotercer",
+        "decimocuart",
+        "decimoquint",
+        "decimosext",
+        "decimoséptim",
+        "decimooctav",
+        "decimonoven",
+    ];
+    pub(super) const CENTENAS: [&str; 10] = [
+        "",
+        "centésimo",
+        "ducentésimo",
+        "tricentésimo",
+        "cuadringentésimo",
+        "quingentésimo",
+        "sexcentésimo",
+        "septingentésimo",
+        "octingentésimo",
+        "noningentésimo",
+    ];
+    pub(super) const MILLARES: [&str; 22] = [
+        "",
+        "milésimo",
+        "millonésimo",
+        "billonésimo",
+        "trillonésimo",
+        "cuatrillonésimo",
+        "quintillonésimo",
+        "sextillonésimo",
+        "septillonésimo",
+        "octillonésimo",
+        "nonillonésimo",
+        "decillonésimo",
+        "undecillonésimo",
+        "duodecillonésimo",
+        "tredecillonésimo",
+        "cuatrodecillonésimo",
+        "quindeciollonésimo",
+        "sexdecillonésimo",
+        "septendecillonésimo",
+        "octodecillonésimo",
+        "novendecillonésimo",
+        "vigintillonésimo",
+    ];
+}
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub struct Spanish {
     /// Negative flavour like "bajo cero", "menos", "negativo"
@@ -115,50 +182,10 @@ pub struct Spanish {
     // Writes the number as "veintiocho" instead of "veinte y ocho" in case of true
     veinti: bool,
     decimal_char: DecimalChar,
+    // Gender for ordinal numbers
+    feminine: bool,
 }
 
-// TODO: Remove Copy trait if enums can store data
-#[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
-pub enum NegativeFlavour {
-    #[default]
-    Prepended, // -1 => menos uno
-    Appended,  // -1 => uno negativo
-    BelowZero, // -1 => uno bajo cero
-}
-impl Display for NegativeFlavour {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        match self {
-            NegativeFlavour::Prepended => write!(f, "menos"),
-            NegativeFlavour::Appended => write!(f, "negativo"),
-            NegativeFlavour::BelowZero => write!(f, "bajo cero"),
-        }
-    }
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
-pub enum DecimalChar {
-    #[default]
-    Punto,
-    Coma,
-}
-
-impl DecimalChar {
-    #[inline(always)]
-    pub fn to_word(&self) -> &'static str {
-        match self {
-            DecimalChar::Punto => "punto",
-            DecimalChar::Coma => "coma",
-        }
-    }
-
-    #[inline(always)]
-    pub fn to_char(self) -> char {
-        match self {
-            DecimalChar::Punto => '.',
-            DecimalChar::Coma => ',',
-        }
-    }
-}
 impl Spanish {
     #[inline(always)]
     pub fn new() -> Self {
@@ -198,6 +225,7 @@ impl Spanish {
         Self { decimal_char, ..self }
     }
 
+    #[inline(always)]
     pub fn to_cardinal(&self, num: BigFloat) -> Result<String, Num2Err> {
         if num.is_inf() {
             self.inf_to_cardinal(&num)
@@ -270,13 +298,13 @@ impl Spanish {
                     // case `?_110` => `? ciento diez`
                     1 => words.push(String::from(DIECIS[units])),
                     2 if self.veinti && units != 0 => match units {
-                        // TODO:add accent if you can not support ASCII and want to be grammatically
-                        1 if i != 0 => words.push(String::from("veintiun")),
+                        // case `?_021` => `? veintiuno`
+                        // case `021_...` => `? veintiún...`
+                        1 if i != 0 => words.push(String::from("veintiún")),
                         _ => words.push(String::from("veinti") + unit_word),
                     },
-                    // 2 if self.veinti && units == 1 => words.push(String::from("veintiun")),
                     _ => {
-                        // case `?_142 => `? cuarenta y dos`
+                        // case `?_142 => `? ciento cuarenta y dos`
                         let ten = DECENAS[tens];
                         words.push(match units {
                             0 => String::from(ten),
@@ -354,7 +382,7 @@ impl Spanish {
         }
     }
 
-    // TODO: Refactor away if it only has a single callsite
+    #[inline(always)]
     fn flavourize_with_negative(&self, words: &mut Vec<String>, flavour: NegativeFlavour) {
         use NegativeFlavour::*;
         let string = flavour.to_string();
@@ -365,7 +393,111 @@ impl Spanish {
         }
     }
 }
+impl Language for Spanish {
+    fn to_cardinal(&self, num: BigFloat) -> Result<String, Num2Err> {
+        self.to_cardinal(num)
+    }
 
+    fn to_ordinal(&self, num: BigFloat) -> Result<String, Num2Err> {
+        // Important to keep so it doesn't conflict with the main module's constants
+        use ordinal::{CENTENAS, DECENAS, DIECIS, MILLARES, UNIDADES};
+        if num.is_inf() || num.is_negative() || !num.frac().is_zero() {
+            return Err(Num2Err::CannotConvert);
+        }
+        let is_feminine = self.feminine;
+        let mut words = vec![];
+        for (i, triplet) in self.en_miles(num.int()).into_iter().enumerate().rev() {
+            let hundreds = ((triplet / 100) % 10) as usize;
+            let tens = ((triplet / 10) % 10) as usize;
+            let units = (triplet % 10) as usize;
+
+            if hundreds > 0 {
+                words.push(String::from(CENTENAS[hundreds]))
+            }
+
+            if tens != 0 || units != 0 {
+                let gender = || -> &str { if is_feminine { "a" } else { "o" } };
+                let unit_word = String::from(UNIDADES[units]);
+
+                todo!("Finish the logic behind tens match statement");
+                match tens {
+                    // case `?_119` => `? ciento diecinueve`
+                    // case `?_110` => `? ciento diez`
+                    1 => words.push(String::from(DIECIS[units]) + gender()),
+                    _ => {
+                        // case `?_142 => `? ciento cuarenta y dos`
+                        let ten = DECENAS[tens];
+                        words.push(match units {
+                            0 => String::from(ten),
+                            _ => format!("{ten} y {unit_word}"),
+                        });
+                    }
+                }
+            }
+
+            // Add the next Milliard if there's any.
+            if i != 0 && triplet != 0 {
+                if i > MILLARES.len() - 1 {
+                    return Err(Num2Err::CannotConvert);
+                }
+                // Boolean that checks if next Milliard is plural
+                let plural = triplet != 1;
+                match plural {
+                    false => words.push(String::from(MILLAR[i])),
+                    true => words.push(String::from(MILLARES[i])),
+                }
+            }
+        }
+
+        todo!()
+    }
+
+    fn to_ordinal_num(&self, num: BigFloat) -> Result<String, Num2Err> {
+        todo!()
+    }
+
+    fn to_year(&self, num: BigFloat) -> Result<String, Num2Err> {
+        todo!()
+    }
+
+    fn to_currency(&self, num: BigFloat, currency: crate::Currency) -> Result<String, Num2Err> {
+        todo!()
+    }
+}
+// TODO: Remove Copy trait if enums can store data
+#[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum NegativeFlavour {
+    #[default]
+    Prepended, // -1 => menos uno
+    Appended,  // -1 => uno negativo
+    BelowZero, // -1 => uno bajo cero
+}
+impl Display for NegativeFlavour {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            NegativeFlavour::Prepended => write!(f, "menos"),
+            NegativeFlavour::Appended => write!(f, "negativo"),
+            NegativeFlavour::BelowZero => write!(f, "bajo cero"),
+        }
+    }
+}
+
+#[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DecimalChar {
+    #[default]
+    Punto,
+    Coma,
+}
+
+impl DecimalChar {
+    #[inline(always)]
+    pub fn to_word(self) -> &'static str {
+        match self {
+            DecimalChar::Punto => "punto",
+            DecimalChar::Coma => "coma",
+        }
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
