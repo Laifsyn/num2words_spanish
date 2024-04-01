@@ -211,6 +211,7 @@ impl Spanish {
     #[inline(always)]
     // Converts Integer BigFloat to a vector of u64
     fn en_miles(&self, mut num: BigFloat) -> Vec<u64> {
+        // Doesn't check if BigFloat is Integer only
         let mut thousands = Vec::new();
         let mil = 1000.into();
         num = num.abs();
@@ -224,6 +225,11 @@ impl Spanish {
 
     // Only should be called if you're sure the number has no fraction
     fn int_to_cardinal(&self, num: BigFloat) -> Result<String, Num2Err> {
+        // Don't convert a number with fraction, NaN or Infinity
+        if !num.frac().is_zero() || num.is_nan() || num.is_inf() {
+            return Err(Num2Err::CannotConvert);
+        }
+
         if num.is_zero() {
             return Ok(String::from("cero"));
         }
@@ -309,8 +315,8 @@ impl Spanish {
         let mut words = vec![];
         let is_negative = num.is_negative();
         let num = num.abs();
-        let integral_word = self.int_to_cardinal(num.int())?;
-        words.push(integral_word);
+        let positive_int_word = self.int_to_cardinal(num.int())?;
+        words.push(positive_int_word);
 
         let mut fraction_part = num.frac();
         if !fraction_part.is_zero() {
