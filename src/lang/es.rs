@@ -179,8 +179,8 @@ pub mod ordinal {
 pub struct Spanish {
     /// Negative flavour like "bajo cero", "menos", "negativo"
     neg_flavour: NegativeFlavour,
-    // Writes the number as "veintiocho" instead of "veinte y ocho" in case of true
-    veinti: bool,
+    // Writes the number as "veinte y ocho" instead of "veintiocho" in case of true
+    prefer_veinte: bool,
     decimal_char: DecimalChar,
     // Gender for ordinal numbers
     feminine: bool,
@@ -188,19 +188,19 @@ pub struct Spanish {
 
 impl Spanish {
     #[inline(always)]
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(decimal_char: DecimalChar, feminine: bool) -> Self {
+        Self { decimal_char, feminine, ..Default::default() }
     }
 
     #[inline(always)]
-    pub fn set_veinti(&mut self, veinti: bool) -> &mut Self {
-        self.veinti = veinti;
+    pub fn set_veinte(&mut self, veinte: bool) -> &mut Self {
+        self.prefer_veinte = veinte;
         self
     }
 
     #[inline(always)]
-    pub fn with_veinti(self, veinti: bool) -> Self {
-        Self { veinti, ..self }
+    pub fn with_veinte(self, veinte: bool) -> Self {
+        Self { prefer_veinte: veinte, ..self }
     }
 
     #[inline(always)]
@@ -297,12 +297,17 @@ impl Spanish {
                     // case `?_119` => `? ciento diecinueve`
                     // case `?_110` => `? ciento diez`
                     1 => words.push(String::from(DIECIS[units])),
-                    2 if self.veinti && units != 0 => match units {
-                        // case `?_021` => `? veintiuno`
+                    2 if self.prefer_veinte && units != 0 => {
+                        let unit_word = if units == 1 && i != 0 { "un" } else { unit_word };
+                        words.push(format!("veinte y {unit_word}"));
+                    }
+                    2 => words.push(match units {
+                        0 => String::from(DECENAS[tens]),
                         // case `021_...` => `? veintiún...`
-                        1 if i != 0 => words.push(String::from("veintiún")),
-                        _ => words.push(String::from("veinti") + unit_word),
-                    },
+                        1 if i != 0 => String::from("veintiún"),
+                        // case `?_021` => `? veintiuno`
+                        _ => format!("veinti{unit_word}"),
+                    }),
                     _ => {
                         // case `?_142 => `? ciento cuarenta y dos`
                         let ten = DECENAS[tens];
@@ -416,7 +421,13 @@ impl Language for Spanish {
             }
 
             if tens != 0 || units != 0 {
-                let gender = || -> &str { if is_feminine { "a" } else { "o" } };
+                let gender = || -> &str {
+                    if is_feminine {
+                        "a"
+                    } else {
+                        "o"
+                    }
+                };
                 let unit_word = String::from(UNIDADES[units]);
 
                 todo!("Finish the logic behind tens match statement");
@@ -580,14 +591,14 @@ mod tests {
             "ciento setenta y un billones treinta y un millones cuarenta y un mil treinta y uno",
         );
         assert!(!es.int_to_cardinal(to(171_031_041_031)).unwrap().contains(" un "));
-        // with veinti flavour
-        let es = es.with_veinti(true);
+        // with veinte flavour
+        let es = es.with_veinte(true);
 
         assert_eq!(
             es.int_to_cardinal(to(21_021_321_021)).unwrap(),
-            "veintiun billones veintiun millones trescientos veintiun mil veintiuno"
+            "veinte y un billones veinte y un millones trescientos veinte y un mil veinte y uno"
         );
-        assert_eq!(es.int_to_cardinal(to(22_000_000)).unwrap(), "veintidos millones");
+        assert_eq!(es.int_to_cardinal(to(22_000_000)).unwrap(), "veinte y dos millones");
         assert_eq!(
             es.int_to_cardinal(to(20_020_020)).unwrap(),
             "veinte millones veinte mil veinte"
@@ -606,6 +617,7 @@ mod tests {
             es.to_cardinal(BigFloat::from(0.0123456789)).unwrap(),
             "cero coma cero uno dos tres cuatro cinco seis siete ocho nueve"
         );
+        // Negative flavours
         use NegativeFlavour::{Appended, BelowZero, Prepended};
         let es = es.with_neg_flavour(Appended);
         assert_eq!(
@@ -672,7 +684,7 @@ mod tests {
         );
         assert_eq!(
             es.int_to_cardinal(to(801_021_001)).unwrap(),
-            "ochocientos uno millones veinte y uno mil uno"
+            "ochocientos uno millones veintiún mil uno"
         );
         assert_eq!(es.int_to_cardinal(to(1_000_000)).unwrap(), "un millón");
         assert_eq!(es.int_to_cardinal(to(1_000_000_000)).unwrap(), "un billón");
