@@ -140,39 +140,39 @@ pub mod ordinal {
     ];
     pub(super) const CENTENAS: [&str; 10] = [
         "",
-        "centésimo",
-        "ducentésimo",
-        "tricentésimo",
-        "cuadringentésimo",
-        "quingentésimo",
-        "sexcentésimo",
-        "septingentésimo",
-        "octingentésimo",
-        "noningentésimo",
+        "centésim",
+        "ducentésim",
+        "tricentésim",
+        "cuadringentésim",
+        "quingentésim",
+        "sexcentésim",
+        "septingentésim",
+        "octingentésim",
+        "noningentésim",
     ];
     pub(super) const MILLARES: [&str; 22] = [
         "",
-        "milésimo",
-        "millonésimo",
-        "billonésimo",
-        "trillonésimo",
-        "cuatrillonésimo",
-        "quintillonésimo",
-        "sextillonésimo",
-        "septillonésimo",
-        "octillonésimo",
-        "nonillonésimo",
-        "decillonésimo",
-        "undecillonésimo",
-        "duodecillonésimo",
-        "tredecillonésimo",
-        "cuatrodecillonésimo",
-        "quindeciollonésimo",
-        "sexdecillonésimo",
-        "septendecillonésimo",
-        "octodecillonésimo",
-        "novendecillonésimo",
-        "vigintillonésimo",
+        "milésim",
+        "millonésim",
+        "billonésim",
+        "trillonésim",
+        "cuatrillonésim",
+        "quintillonésim",
+        "sextillonésim",
+        "septillonésim",
+        "octillonésim",
+        "nonillonésim",
+        "decillonésim",
+        "undecillonésim",
+        "duodecillonésim",
+        "tredecillonésim",
+        "cuatrodecillonésim",
+        "quindeciollonésim",
+        "sexdecillonésim",
+        "septendecillonésim",
+        "octodecillonésim",
+        "novendecillonésim",
+        "vigintillonésim",
     ];
 }
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
@@ -184,6 +184,8 @@ pub struct Spanish {
     decimal_char: DecimalChar,
     // Gender for ordinal numbers
     feminine: bool,
+    // Plural for ordinal numbers
+    plural: bool,
 }
 
 impl Spanish {
@@ -337,11 +339,7 @@ impl Spanish {
             self.flavourize_with_negative(&mut words, *flavour)
         }
 
-        Ok(words
-            .into_iter()
-            .filter_map(|word| (!word.is_empty()).then_some(word))
-            .collect::<Vec<String>>()
-            .join(" "))
+        Ok(words.into_iter().filter(|word| !word.is_empty()).collect::<Vec<String>>().join(" "))
     }
 
     fn float_to_cardinal(&self, num: &BigFloat) -> Result<String, Num2Err> {
@@ -403,34 +401,47 @@ impl Language for Spanish {
         self.to_cardinal(num)
     }
 
+    /// Ordinal numbers above 10 are unnatural for Spanish speakers. Don't rely on these to convey meanings
     fn to_ordinal(&self, num: BigFloat) -> Result<String, Num2Err> {
         // Important to keep so it doesn't conflict with the main module's constants
         use ordinal::{CENTENAS, DECENAS, DIECIS, MILLARES, UNIDADES};
-        if num.is_inf() || num.is_negative() || !num.frac().is_zero() {
-            return Err(Num2Err::CannotConvert);
+        match (num.is_inf(), num.is_negative(), num.frac().is_zero()) {
+            (true, _, _) => return Err(Num2Err::InfiniteOrdinal),
+            (_, true, _) => return Err(Num2Err::NegativeOrdinal),
+            (_, _, false) => return Err(Num2Err::FloatingOrdinal),
+            _ => (), /* Nothing Happens */
         }
-        let is_feminine = self.feminine;
         let mut words = vec![];
+
+        let gender = || -> &'static str {
+            if self.feminine {
+                "a"
+            } else {
+                "o"
+            }
+        };
         for (i, triplet) in self.en_miles(num.int()).into_iter().enumerate().rev() {
             let hundreds = ((triplet / 100) % 10) as usize;
             let tens = ((triplet / 10) % 10) as usize;
             let units = (triplet % 10) as usize;
 
             if hundreds > 0 {
-                words.push(String::from(CENTENAS[hundreds]))
+                words.push(String::from(CENTENAS[hundreds]) + gender())
             }
 
             if tens != 0 || units != 0 {
-                let gender = || -> &str {
-                    if is_feminine {
-                        "a"
-                    } else {
-                        "o"
-                    }
-                };
                 let unit_word = String::from(UNIDADES[units]);
+                let unit_word = match (units, i) {
+                    // case `1_100` => `milésimo centésimo` instead of `primero milésimo centésimo`
+                    (_, 1) if triplet == 1 => "",
+                    // case `001_001_100...` => `un billón un millón cien mil...` instead of
+                    // `uno billón uno millón cien mil...`
+                    // All `triplets == 1`` can can be named as "un". except for first or second
+                    // triplet
+                    (_, index) if index != 0 && triplet == 1 => "un",
+                    _ => UNIDADES[units],
+                };
 
-                todo!("Finish the logic behind tens match statement");
                 match tens {
                     // case `?_119` => `? ciento diecinueve`
                     // case `?_110` => `? ciento diez`
@@ -438,10 +449,12 @@ impl Language for Spanish {
                     _ => {
                         // case `?_142 => `? ciento cuarenta y dos`
                         let ten = DECENAS[tens];
-                        words.push(match units {
-                            0 => String::from(ten),
-                            _ => format!("{ten} y {unit_word}"),
-                        });
+                        let word = match units {
+                            // case `?_120 => `? ciento cuarenta y dos`
+                            0 => String::from(ten.trim_end_matches('o')),
+                            _ => format!("{ten} {unit_word}"),
+                        };
+                        words.push(word + gender());
                     }
                 }
             }
@@ -451,20 +464,20 @@ impl Language for Spanish {
                 if i > MILLARES.len() - 1 {
                     return Err(Num2Err::CannotConvert);
                 }
-                // Boolean that checks if next Milliard is plural
-                let plural = triplet != 1;
-                match plural {
-                    false => words.push(String::from(MILLAR[i])),
-                    true => words.push(String::from(MILLARES[i])),
-                }
+                words.push(String::from(MILLARES[i]) + gender());
             }
         }
 
-        todo!()
+        if self.plural {
+            words.last_mut().map(|word| {
+                word.push_str("s");
+            });
+        }
+        Ok(words.into_iter().filter(|word| !word.is_empty()).collect::<Vec<String>>().join(" "))
     }
 
     fn to_ordinal_num(&self, num: BigFloat) -> Result<String, Num2Err> {
-        todo!()
+        unimplemented!()
     }
 
     fn to_year(&self, num: BigFloat) -> Result<String, Num2Err> {
@@ -584,16 +597,22 @@ mod tests {
             es.int_to_cardinal(to(171_031_041_031)).unwrap(),
             "ciento setenta y uno billones treinta y uno millones cuarenta y uno mil treinta y uno"
         );
+    }
+    #[test]
+    fn lang_es_un_is_for_single_unit() {
         // Triplets ending in 1 but higher than 30, is never "un"
         // consequently should never contain " un " as substring anywhere unless proven otherwise
-        assert_ne!(
-            es.int_to_cardinal(to(171_031_041_031)).unwrap(),
-            "ciento setenta y un billones treinta y un millones cuarenta y un mil treinta y uno",
+        let es = Spanish::default();
+        assert_eq!(
+            es.int_to_cardinal(to(171_031_091_031)).unwrap(),
+            "ciento setenta y uno billones treinta y uno millones noventa y uno mil treinta y uno",
         );
-        assert!(!es.int_to_cardinal(to(171_031_041_031)).unwrap().contains(" un "));
+        assert!(!es.int_to_cardinal(to(171_031_091_031)).unwrap().contains(" un "));
+    }
+    #[test]
+    fn lang_es_with_veinte_flavor() {
         // with veinte flavour
-        let es = es.with_veinte(true);
-
+        let es = Spanish::default().with_veinte(true);
         assert_eq!(
             es.int_to_cardinal(to(21_021_321_021)).unwrap(),
             "veinte y un billones veinte y un millones trescientos veinte y un mil veinte y uno"
