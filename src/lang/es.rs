@@ -421,6 +421,9 @@ impl Spanish {
 }
 impl Language for Spanish {
     fn to_cardinal(&self, num: BigFloat) -> Result<String, Num2Err> {
+        if num.is_nan() {
+            return Err(Num2Err::CannotConvert);
+        }
         self.to_cardinal(num)
     }
 
@@ -433,6 +436,7 @@ impl Language for Spanish {
             (true, _, _) => return Err(Num2Err::InfiniteOrdinal),
             (_, true, _) => return Err(Num2Err::NegativeOrdinal),
             (_, _, false) => return Err(Num2Err::FloatingOrdinal),
+            _ if num.is_nan() => return Err(Num2Err::CannotConvert),
             _ => (), /* Nothing Happens */
         }
         let mut words = vec![];
@@ -496,6 +500,7 @@ impl Language for Spanish {
             (true, _, _) => return Err(Num2Err::InfiniteOrdinal),
             (_, true, _) => return Err(Num2Err::NegativeOrdinal),
             (_, _, false) => return Err(Num2Err::FloatingOrdinal),
+            _ if num.is_nan() => return Err(Num2Err::CannotConvert),
             _ => (), /* Nothing Happens */
         }
 
@@ -505,7 +510,27 @@ impl Language for Spanish {
     }
 
     fn to_year(&self, num: BigFloat) -> Result<String, Num2Err> {
-        todo!()
+        match (num.is_inf(), num.frac().is_zero(), num.int().is_zero()) {
+            (true, _, _) => return Err(Num2Err::InfiniteYear),
+            (_, false, _) => return Err(Num2Err::FloatingYear),
+            (_, _, true) => return Err(Num2Err::CannotConvert), // Year 0 is not a thing
+            _ if num.is_nan() => return Err(Num2Err::CannotConvert),
+            _ => (/* Nothing Happens */),
+        }
+
+        let mut num = num;
+
+        let suffix = if num.is_negative() {
+            num = num.inv_sign();
+            " a. C."
+        } else {
+            ""
+        };
+
+        // Years in spanish are read the same as cardinal numbers....(?)
+        // src:https://twitter.com/RAEinforma/status/1761725275736334625?lang=en
+        let year_word = self.int_to_cardinal(num)?;
+        Ok(format!("{}{}", year_word, suffix))
     }
 
     fn to_currency(&self, num: BigFloat, currency: crate::Currency) -> Result<String, Num2Err> {
