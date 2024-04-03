@@ -1,11 +1,23 @@
-use std::io::Write;
+use std::io::{stdin, Write};
 
 use num2words::lang::{Language, Spanish};
 use num_bigfloat::BigFloat;
 pub fn main() {
     let es = Spanish::default();
-    let result = es.to_ordinal(BigFloat::from(1215));
-    println!("{:?}", result);
+    let mut string = String::new();
+    loop {
+        string.clear();
+        stdin().read_line(&mut string).unwrap();
+        let num = string.trim().parse::<u64>();
+        if num.is_err() {
+            println!("Número inválido");
+            continue;
+        }
+        let num = num.unwrap();
+        let result = es.to_ordinal(BigFloat::from(num));
+        pretty_print_int(num);
+        println!("\n{:?}", result);
+    }
     // let mut input = String::new();
     // print!("\nIngrese un número para convertir a palabras\nIngrese `exit` para salir:\n\n");
     // fn read_line(input: &mut String) {
