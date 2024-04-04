@@ -433,10 +433,10 @@ impl Language for Spanish {
         // Important to keep so it doesn't conflict with the main module's constants
         use ordinal::{CENTENAS, DECENAS, DIECIS, MILLARES, UNIDADES};
         match (num.is_inf(), num.is_negative(), num.frac().is_zero()) {
+            _ if num.is_nan() => return Err(Num2Err::CannotConvert),
             (true, _, _) => return Err(Num2Err::InfiniteOrdinal),
             (_, true, _) => return Err(Num2Err::NegativeOrdinal),
             (_, _, false) => return Err(Num2Err::FloatingOrdinal),
-            _ if num.is_nan() => return Err(Num2Err::CannotConvert),
             _ => (), /* Nothing Happens */
         }
         let mut words = vec![];
@@ -497,10 +497,10 @@ impl Language for Spanish {
 
     fn to_ordinal_num(&self, num: BigFloat) -> Result<String, Num2Err> {
         match (num.is_inf(), num.is_negative(), num.frac().is_zero()) {
+            _ if num.is_nan() => return Err(Num2Err::CannotConvert),
             (true, _, _) => return Err(Num2Err::InfiniteOrdinal),
             (_, true, _) => return Err(Num2Err::NegativeOrdinal),
             (_, _, false) => return Err(Num2Err::FloatingOrdinal),
-            _ if num.is_nan() => return Err(Num2Err::CannotConvert),
             _ => (), /* Nothing Happens */
         }
 
@@ -511,10 +511,10 @@ impl Language for Spanish {
 
     fn to_year(&self, num: BigFloat) -> Result<String, Num2Err> {
         match (num.is_inf(), num.frac().is_zero(), num.int().is_zero()) {
+            _ if num.is_nan() => return Err(Num2Err::CannotConvert),
             (true, _, _) => return Err(Num2Err::InfiniteYear),
             (_, false, _) => return Err(Num2Err::FloatingYear),
             (_, _, true) => return Err(Num2Err::CannotConvert), // Year 0 is not a thing
-            _ if num.is_nan() => return Err(Num2Err::CannotConvert),
             _ => (/* Nothing Happens */),
         }
 
@@ -575,8 +575,8 @@ impl DecimalChar {
 mod tests {
     use super::*;
     #[inline(always)]
-    fn to(input: i128) -> BigFloat {
-        BigFloat::from_i128(input)
+    fn to<T: Into<BigFloat>>(input: T) -> BigFloat {
+        BigFloat::from(input.into())
     }
     #[test]
     fn lang_es_sub_thousands() {
@@ -634,16 +634,59 @@ mod tests {
         // Thousand's milliard is plural
         assert_eq!(es.int_to_cardinal(to(2_100)).unwrap(), "dos mil cien");
         // Cardinal number ending in 1 always ends with "uno"
-        assert!(es.int_to_cardinal(to(12_233_521_251)).unwrap().ends_with("uno"));
+        assert!(es.int_to_cardinal(to(12_233_521_251.0)).unwrap().ends_with("uno"));
         // triplet with value "10"
         assert_eq!(es.int_to_cardinal(to(110_010_000)).unwrap(), "ciento diez millones diez mil");
         // Triplets ending in 1 but higher than 30, is "uno"
         // "un" is reserved for triplet == 1 in magnitudes higher than 10^3 like "un millón"
         // or "un trillón"
         assert_eq!(
-            es.int_to_cardinal(to(171_031_041_031)).unwrap(),
+            es.int_to_cardinal(to(171_031_041_031.0)).unwrap(),
             "ciento setenta y uno billones treinta y uno millones cuarenta y uno mil treinta y uno"
         );
+    }
+    #[test]
+    fn lang_es_lang_trait_methods_fails_on() {
+        let es = Spanish::default();
+        let to_cardinal = Language::to_cardinal;
+        assert_eq!(to_cardinal(&es, to(f64::NAN)).unwrap_err(), Num2Err::CannotConvert);
+        // Vigintillion supposedly has 63 zeroes, so anything beyond ~66 digits should fail with
+        // current impl
+        let some_big_num = BigFloat::from_u8(2).pow(&BigFloat::from_u8(230));
+        assert_eq!(to_cardinal(&es, to(some_big_num)).unwrap_err(), Num2Err::CannotConvert);
+
+        let to_ordinal = Language::to_ordinal;
+        assert_eq!(to_ordinal(&es, to(0.001)).unwrap_err(), Num2Err::FloatingOrdinal);
+        assert_eq!(to_ordinal(&es, to(-0.01)).unwrap_err(), Num2Err::NegativeOrdinal);
+        assert_eq!(to_ordinal(&es, to(f64::NAN)).unwrap_err(), Num2Err::CannotConvert);
+        assert_eq!(to_ordinal(&es, to(f64::INFINITY)).unwrap_err(), Num2Err::InfiniteOrdinal);
+        assert_eq!(to_ordinal(&es, to(f64::NEG_INFINITY)).unwrap_err(), Num2Err::InfiniteOrdinal);
+
+        let to_ord_num = Language::to_ordinal_num;
+        assert_eq!(to_ord_num(&es, to(0.001)).unwrap_err(), Num2Err::FloatingOrdinal);
+        assert_eq!(to_ord_num(&es, to(-0.01)).unwrap_err(), Num2Err::NegativeOrdinal);
+        assert_eq!(to_ord_num(&es, to(f64::NAN)).unwrap_err(), Num2Err::CannotConvert);
+        assert_eq!(to_ord_num(&es, to(f64::INFINITY)).unwrap_err(), Num2Err::InfiniteOrdinal);
+        assert_eq!(to_ord_num(&es, to(f64::NEG_INFINITY)).unwrap_err(), Num2Err::InfiniteOrdinal);
+
+        // Year is the same as cardinal. Except when negative, it is appended with " a. C."
+        let to_year = Language::to_year;
+        assert_eq!(to_year(&es, to(0.001)).unwrap_err(), Num2Err::FloatingYear);
+        assert_eq!(to_year(&es, to(f64::INFINITY)).unwrap_err(), Num2Err::InfiniteYear);
+        assert_eq!(to_year(&es, to(f64::NEG_INFINITY)).unwrap_err(), Num2Err::InfiniteYear);
+        assert_eq!(to_year(&es, to(f64::NAN)).unwrap_err(), Num2Err::CannotConvert);
+        assert_eq!(to_year(&es, to(0)).unwrap_err(), Num2Err::CannotConvert); // Year 0 is not a thing afaik
+    }
+    #[test]
+    fn lang_es_year_is_similar_to_cardinal() {
+        let es = Spanish::default();
+
+        assert_eq!(es.to_year(to(2021)).unwrap(), "dos mil veintiuno");
+        assert_eq!(es.to_year(to(-2021)).unwrap(), "dos mil veintiuno a. C.");
+        let two = BigFloat::from(2);
+        for num in (3u64..).take(60).map(|num| two.pow(&to(num))) {
+            assert_eq!(es.to_year(num).unwrap(), es.to_cardinal(num).unwrap())
+        }
     }
     #[test]
     fn lang_es_un_is_for_single_unit() {
@@ -651,17 +694,17 @@ mod tests {
         // consequently should never contain " un " as substring anywhere unless proven otherwise
         let es = Spanish::default();
         assert_eq!(
-            es.int_to_cardinal(to(171_031_091_031)).unwrap(),
+            es.int_to_cardinal(to(171_031_091_031.0)).unwrap(),
             "ciento setenta y uno billones treinta y uno millones noventa y uno mil treinta y uno",
         );
-        assert!(!es.int_to_cardinal(to(171_031_091_031)).unwrap().contains(" un "));
+        assert!(!es.int_to_cardinal(to(171_031_091_031.0)).unwrap().contains(" un "));
     }
     #[test]
     fn lang_es_with_veinte_flavor() {
         // with veinte flavour
         let es = Spanish::default().with_veinte(true);
         assert_eq!(
-            es.int_to_cardinal(to(21_021_321_021)).unwrap(),
+            es.int_to_cardinal(to(21_021_321_021.0)).unwrap(),
             "veinte y un billones veinte y un millones trescientos veinte y un mil veinte y uno"
         );
         assert_eq!(es.int_to_cardinal(to(22_000_000)).unwrap(), "veinte y dos millones");
