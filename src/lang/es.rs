@@ -399,12 +399,14 @@ impl Spanish {
         } else if num.is_inf_pos() {
             Ok(String::from("infinito"))
         } else {
-            Ok(match self.neg_flavour {
-                NegativeFlavour::Prepended => String::from("menos infinito"),
-                NegativeFlavour::Appended => String::from("infinito negativo"),
-                // Defaults to menos because it doesn't make sense to call `infinito bajo cero`
-                NegativeFlavour::BelowZero => String::from("menos infinito"),
-            })
+            let word = match self.neg_flavour {
+                NegativeFlavour::Prepended => "{} infinito",
+                NegativeFlavour::Appended => "infinito {}",
+                // Defaults to `menos` because it doesn't make sense to call `infinito bajo cero`
+                NegativeFlavour::BelowZero => "menos infinito",
+            }
+            .replace("{}", self.neg_flavour.as_str());
+            Ok(word)
         }
     }
 
@@ -534,7 +536,34 @@ impl Language for Spanish {
     }
 
     fn to_currency(&self, num: BigFloat, currency: crate::Currency) -> Result<String, Num2Err> {
-        todo!()
+        if num.is_nan() {
+            Err(Num2Err::CannotConvert)
+        } else if num.is_inf() {
+            let currency = currency.default_string(true);
+            let inf = self.inf_to_cardinal(&num)? + "de {}";
+            let word = inf.replace("{}", &currency);
+            return Ok(word);
+        } else if num.frac().is_zero() {
+            let is_plural = num.int() != 1.into();
+            let currency = currency.default_string(is_plural);
+            let cardinal = self.int_to_cardinal(num)?;
+            return Ok(format!("{cardinal} {currency}"));
+        } else {
+            let hundred: BigFloat = 100.into();
+            let (integral, cents) = (num.int(), num.mul(&hundred).int().rem(&hundred));
+            let (int_words, cent_words) =
+                (self.to_currency(integral, currency)?, self.int_to_cardinal(cents)?);
+            let cents_is_plural = cents != 1.into();
+            let cents_suffix = currency.default_subunit_string("centavo{}", cents_is_plural);
+
+            if cents.is_zero() {
+                return Ok(int_words);
+            } else if integral.is_zero() {
+                return Ok(format!("{cent_words} {cents_suffix}"));
+            } else {
+                return Ok(format!("{} con {} {cents_suffix}", int_words, cent_words));
+            }
+        }
     }
 }
 // TODO: Remove Copy trait if enums can store data
@@ -545,13 +574,18 @@ pub enum NegativeFlavour {
     Appended,  // -1 => uno negativo
     BelowZero, // -1 => uno bajo cero
 }
+impl NegativeFlavour {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            NegativeFlavour::Prepended => "menos",
+            NegativeFlavour::Appended => "negativo",
+            NegativeFlavour::BelowZero => "bajo cero",
+        }
+    }
+}
 impl Display for NegativeFlavour {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        match self {
-            NegativeFlavour::Prepended => write!(f, "menos"),
-            NegativeFlavour::Appended => write!(f, "negativo"),
-            NegativeFlavour::BelowZero => write!(f, "bajo cero"),
-        }
+        write!(f, "{str}", str = self.as_str())
     }
 }
 
@@ -576,8 +610,9 @@ mod tests {
     use super::*;
     #[inline(always)]
     fn to<T: Into<BigFloat>>(input: T) -> BigFloat {
-        BigFloat::from(input.into())
+        input.into()
     }
+
     #[test]
     fn lang_es_sub_thousands() {
         let es = Spanish::default();
@@ -591,6 +626,7 @@ mod tests {
         assert_eq!(es.int_to_cardinal(to(142)).unwrap(), "ciento cuarenta y dos");
         assert_eq!(es.int_to_cardinal(to(800)).unwrap(), "ochocientos");
     }
+
     #[test]
     fn lang_es_thousands() {
         let es = Spanish::default();
@@ -618,6 +654,7 @@ mod tests {
         );
         assert_eq!(es.int_to_cardinal(to(800_000)).unwrap(), "ochocientos mil");
     }
+
     #[test]
     fn lang_es_test_by_concept_to_cardinal_method() {
         // This might make other tests trivial
@@ -645,6 +682,7 @@ mod tests {
             "ciento setenta y uno billones treinta y uno millones cuarenta y uno mil treinta y uno"
         );
     }
+
     #[test]
     fn lang_es_lang_trait_methods_fails_on() {
         let es = Spanish::default();
@@ -677,6 +715,7 @@ mod tests {
         assert_eq!(to_year(&es, to(f64::NAN)).unwrap_err(), Num2Err::CannotConvert);
         assert_eq!(to_year(&es, to(0)).unwrap_err(), Num2Err::CannotConvert); // Year 0 is not a thing afaik
     }
+
     #[test]
     fn lang_es_year_is_similar_to_cardinal() {
         let es = Spanish::default();
@@ -688,6 +727,7 @@ mod tests {
             assert_eq!(es.to_year(num).unwrap(), es.to_cardinal(num).unwrap())
         }
     }
+
     #[test]
     fn lang_es_un_is_for_single_unit() {
         // Triplets ending in 1 but higher than 30, is never "un"
@@ -713,6 +753,7 @@ mod tests {
             "veinte millones veinte mil veinte"
         );
     }
+
     #[test]
     fn lang_es_ordinal() {
         let es = Spanish::default().with_feminine(true).with_plural(true);
@@ -733,6 +774,7 @@ mod tests {
             "centésima vigésima cuarta millonésima primer milésima nonagésima primera"
         );
     }
+
     #[test]
     fn lang_es_with_fraction() {
         use DecimalChar::{Coma, Punto};
@@ -764,6 +806,7 @@ mod tests {
             "cero coma cero uno dos tres cuatro cinco seis siete ocho nueve bajo cero"
         );
     }
+
     #[test]
     fn lang_es_infinity_and_negatives() {
         use NegativeFlavour::*;
@@ -788,6 +831,7 @@ mod tests {
             }
         }
     }
+
     #[test]
     fn lang_es_millions() {
         let es = Spanish::default();
@@ -858,6 +902,7 @@ mod tests {
             "un billón veinte millones diez mil bajo cero"
         );
     }
+
     #[test]
     fn lang_es_positive_is_just_a_substring_of_negative_in_cardinal() {
         const VALUES: [i128; 3] = [-1, -1_000_000, -1_020_010_000];
@@ -876,10 +921,5 @@ mod tests {
                 );
             }
         }
-    }
-
-    #[test]
-    fn lang_es_() {
-        // unimplemented!()
     }
 }
