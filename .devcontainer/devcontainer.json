@@ -5,7 +5,6 @@
 			"extensions": [
 				"cschleiden.vscode-github-actions",
 				"ms-vsliveshare.vsliveshare",
-				"matklad.rust-analyzer",
 				"serayuzgur.crates",
 				"vadimcn.vscode-lldb",
 
@@ -22,11 +21,35 @@
 				"editor.formatOnSave": true,
 				"editor.inlayHints.enabled": "offUnlessPressed",
 				"terminal.integrated.shell.linux": "/usr/bin/zsh",
+				"rust-analyzer.rustfmt.extraArgs": [
+					"+nightly" // I personally love nightly rustfmt
+				],
 				"files.exclude": {
 					"**/CODE_OF_CONDUCT.md": true,
 					"**/LICENSE": true
 				}
-			}
+			},
+			"keybindings": // Place your key bindings in this file to override the defaults
+			[
+				{
+					"key": "alt+q",
+					"command": "workbench.action.openQuickChat.copilot"
+				},
+				{
+					"key": "alt+a",
+					"command": "github.copilot.ghpr.applySuggestion"
+				},
+				{
+					"key": "alt+`",
+					"command": "editor.action.showHover",
+					"when": "editorTextFocus"
+				},
+				{
+					"key": "ctrl+k ctrl+i",
+					"command": "-editor.action.showHover",
+					"when": "editorTextFocus"
+				}
+			]
 		}
 	},
 	"dockerFile": "Dockerfile"
