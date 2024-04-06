@@ -636,10 +636,27 @@ impl DecimalChar {
 }
 #[cfg(test)]
 mod tests {
+    use core::panic;
+
     use super::*;
     #[inline(always)]
     fn to<T: Into<BigFloat>>(input: T) -> BigFloat {
         input.into()
+    }
+
+    #[test]
+    fn decimal_char_enum_integrity() {
+        // Test if the enum can be converted to string and back
+        assert_eq!(DecimalChar::from_str("punto").unwrap(), DecimalChar::Punto);
+        assert_eq!(DecimalChar::from_str("coma").unwrap(), DecimalChar::Coma);
+    }
+
+    #[test]
+    fn negative_flavour_enum_integrity() {
+        // Test if the enum can be converted to string and back
+        assert_eq!(NegativeFlavour::from_str("menos").unwrap(), NegativeFlavour::Prepended);
+        assert_eq!(NegativeFlavour::from_str("negativo").unwrap(), NegativeFlavour::Appended);
+        assert_eq!(NegativeFlavour::from_str("bajo cero").unwrap(), NegativeFlavour::BelowZero);
     }
 
     #[test]
