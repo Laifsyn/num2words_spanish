@@ -5,6 +5,20 @@ use num_bigfloat::BigFloat;
 pub fn main() {
     let es = Spanish::default();
     let mut string = String::new();
+    // Sort slice
+    let mut slice = ["bajo cero", "negativo", "menos"];
+    slice.sort();
+    println!("{:?}", slice);
+    let feminine = ["f", "femi", "feminino"].iter().find(|preference| {
+        let result = slice.binary_search(preference);
+        println!("{:?} := {preference:?}", result);
+        false
+    });
+    println!("{:?}", feminine);
+    /* {
+        let found = slice.binary_search(preference);
+        println!("{:?}", found);
+    } */
     loop {
         string.clear();
         stdin().read_line(&mut string).unwrap();

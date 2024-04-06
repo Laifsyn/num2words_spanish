@@ -1,4 +1,4 @@
-#[rustfmt::skip] // TODO: Remove attribute before final merge
+#![cfg_attr(rustfmt, rustfmt_skip)] // TODO: Remove attribute before final merge
 mod lang;
 mod en;
 mod es;

@@ -3,6 +3,8 @@ use core::fmt::{self, Formatter};
 use std::borrow::BorrowMut;
 use std::convert::TryInto;
 use std::fmt::Display;
+use std::ops::Neg;
+use std::str::FromStr;
 
 use num_bigfloat::BigFloat;
 
@@ -583,6 +585,21 @@ impl NegativeFlavour {
         }
     }
 }
+impl FromStr for NegativeFlavour {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let result = match s {
+            "menos" => NegativeFlavour::Prepended,
+            "negativo" => NegativeFlavour::Appended,
+            "bajo cero" => NegativeFlavour::BelowZero,
+            _ => return Err(()),
+        };
+        debug_assert!(result.as_str() == s, "NegativeFlavour::from_str() is incorrect");
+        Ok(result)
+    }
+}
+
 impl Display for NegativeFlavour {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "{str}", str = self.as_str())
@@ -595,7 +612,19 @@ pub enum DecimalChar {
     Punto,
     Coma,
 }
+impl FromStr for DecimalChar {
+    type Err = ();
 
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let result = match s {
+            "punto" => DecimalChar::Punto,
+            "coma" => DecimalChar::Coma,
+            _ => return Err(()),
+        };
+        debug_assert!(result.to_word() == s, "DecimalChar::from_str() is incorrect");
+        Ok(result)
+    }
+}
 impl DecimalChar {
     #[inline(always)]
     pub fn to_word(self) -> &'static str {
