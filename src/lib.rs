@@ -1,3 +1,4 @@
+#![cfg_attr(rustfmt, rustfmt_skip)]
 #![crate_type = "lib"]
 #![crate_name = "num2words"]
 
