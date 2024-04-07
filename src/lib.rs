@@ -82,6 +82,7 @@
  * | 🇧🇪🇨🇩 | `Lang::French_BE` | `fr_BE`   | French (BE) | quarante-deux |
  * | 🇨🇭   | `Lang::French_CH` | `fr_CH`   | French (CH) | quarante-deux |
  * | 🇺🇦   | `Lang::Ukrainian` | `uk`      | Ukrainian   | сорок два     |
+ * | 🇪🇸   | `Lang::Spanish`   | `es`      | Spanish     | cuarenta y dos|
  *
  * This list can be expanded! Contributions are welcomed.
  *
