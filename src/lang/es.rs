@@ -491,7 +491,7 @@ impl Language for Spanish {
                 words.push(String::from(MILLARES[i]) + gender());
             }
         }
-        if !self.plural {
+        if self.plural {
             if let Some(word) = words.last_mut() {
                 word.push('s');
             }
@@ -590,12 +590,13 @@ impl FromStr for NegativeFlavour {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let result = match s {
+            "prepended" => NegativeFlavour::Prepended,
+            "appended" => NegativeFlavour::Appended,
             "menos" => NegativeFlavour::Prepended,
             "negativo" => NegativeFlavour::Appended,
             "bajo cero" => NegativeFlavour::BelowZero,
             _ => return Err(()),
         };
-        debug_assert!(result.as_str() == s, "NegativeFlavour::from_str() is incorrect");
         Ok(result)
     }
 }
@@ -802,7 +803,7 @@ mod tests {
 
     #[test]
     fn lang_es_ordinal() {
-        let es = Spanish::default().with_feminine(true).with_plural(true);
+        let es = Spanish::default().with_feminine(true);
         let ordinal = |num: i128| es.to_ordinal(to(num)).unwrap();
         assert_eq!(ordinal(1_101_001), "primer millonésima centésima primera milésima primera");
         assert_eq!(ordinal(2_001_022), "segunda millonésima primer milésima vigésima segunda");
@@ -815,9 +816,11 @@ mod tests {
             "centésima vigésima cuarta millonésima centésima vigésima primera milésima nonagésima \
              primera"
         );
+        let es = Spanish::default().with_plural(true);
+        let ordinal = |num: i128| es.to_ordinal(to(num)).unwrap();
         assert_eq!(
             ordinal(124_001_091),
-            "centésima vigésima cuarta millonésima primer milésima nonagésima primera"
+            "centésimo vigésimo cuarto millonésimo primer milésimo nonagésimo primeros"
         );
     }
 
