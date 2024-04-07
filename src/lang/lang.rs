@@ -17,6 +17,7 @@ pub trait Language {
 
 /// Languages available in `num2words`
 #[allow(non_camel_case_types)]
+#[derive(Debug, Clone, Copy)]
 pub enum Lang {
     /// ```
     /// use num2words::{Num2Words, Lang};
