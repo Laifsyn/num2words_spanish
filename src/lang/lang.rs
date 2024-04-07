@@ -1,10 +1,9 @@
-#![cfg_attr(rustfmt, rustfmt_skip)]
-#![allow(clippy::search_is_some)]
-use crate::lang;
-use crate::num2words::Num2Err;
-use crate::Currency;
-use num_bigfloat::BigFloat;
 use std::str::FromStr;
+
+use num_bigfloat::BigFloat;
+
+use crate::num2words::Num2Err;
+use crate::{lang, Currency};
 
 /// Defines what is a language
 pub trait Language {
@@ -149,28 +148,27 @@ pub fn to_language(lang: Lang, preferences: Vec<String>) -> Box<dyn Language> {
                 .is_some();
 
             Box::new(lang::French::new(feminine, reformed, lang::fr::RegionFrench::CH))
-        },
+        }
         Lang::Spanish => {
-            use crate::lang::es::DecimalChar;
-            use super::es::NegativeFlavour;
+            use super::es::{DecimalChar, NegativeFlavour};
             let neg_flavour = preferences
                 .iter()
-                .find_map(|v| NegativeFlavour::from_str(v).ok()).unwrap_or_default();
-            let prefer_veinte = preferences
-                .iter()
-                .any(|v| ["veinte"].binary_search(&v.as_str()).is_ok());
-            let decimal_char = preferences
-                .iter()
-                .find_map(|v| DecimalChar::from_str(v).ok()).unwrap_or_default();
+                .find_map(|v| NegativeFlavour::from_str(v).ok())
+                .unwrap_or_default();
+            let prefer_veinte =
+                preferences.iter().any(|v| ["veinte"].binary_search(&v.as_str()).is_ok());
+            let decimal_char =
+                preferences.iter().find_map(|v| DecimalChar::from_str(v).ok()).unwrap_or_default();
             let feminine = preferences
                 .iter()
                 .any(|v| ["f", "femenino", "feminine"].binary_search(&v.as_str()).is_ok());
-            let plural = preferences
-                .iter()
-                .any(|v| ["plural"].binary_search(&v.as_str()).is_ok());
-            let lang = lang::Spanish::new(decimal_char, feminine).with_plural(plural).with_veinte(prefer_veinte).with_neg_flavour(neg_flavour);
+            let plural = preferences.iter().any(|v| ["plural"].binary_search(&v.as_str()).is_ok());
+            let lang = lang::Spanish::new(decimal_char, feminine)
+                .with_plural(plural)
+                .with_veinte(prefer_veinte)
+                .with_neg_flavour(neg_flavour);
             Box::new(lang)
-        },
+        }
         Lang::Ukrainian => {
             let declension: lang::uk::Declension =
                 preferences.iter().rev().find_map(|d| d.parse().ok()).unwrap_or_default();

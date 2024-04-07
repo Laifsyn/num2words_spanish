@@ -1,9 +1,6 @@
-#![allow(unused_imports)] // TODO: Remove this attribute
+
 use core::fmt::{self, Formatter};
-use std::borrow::BorrowMut;
-use std::convert::TryInto;
 use std::fmt::Display;
-use std::ops::Neg;
 use std::str::FromStr;
 
 use num_bigfloat::BigFloat;

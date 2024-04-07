@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 /// Type of the output `num2words` give
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Output {
     /// Number in cardinal form, e.g., `forty-two`
     Cardinal,
