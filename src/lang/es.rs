@@ -1,4 +1,3 @@
-
 use core::fmt::{self, Formatter};
 use std::fmt::Display;
 use std::str::FromStr;
@@ -187,7 +186,7 @@ pub struct Spanish {
     // Plural for ordinal numbers
     plural: bool,
 }
-
+#[allow(unused)]
 impl Spanish {
     #[inline(always)]
     pub fn new(decimal_char: DecimalChar, feminine: bool) -> Self {
@@ -412,11 +411,15 @@ impl Spanish {
 impl Language for Spanish {
     /// Converts a BigFloat to a cardinal number in Spanish
     /// ```rust
-    /// use num2words::lang::{to_language, Lang, Language};
+    /// use num2words::{Lang, Num2Words};
     /// use num_bigfloat::BigFloat;
     ///
-    /// let es = to_language(Lang::Spanish, vec!["negativo".to_string()]);
-    /// let words = es.to_cardinal(BigFloat::from(-123456.789)).unwrap();
+    /// let words = Num2Words::new(-123_456.789)
+    ///     .lang(Lang::Spanish)
+    ///     .cardinal()
+    ///     .prefer("negativo")
+    ///     .to_words()
+    ///     .unwrap();
     /// assert_eq!(
     ///     words,
     ///     "ciento veintitres mil cuatrocientos cincuenta y seis punto siete ocho nueve negativo"
@@ -424,7 +427,7 @@ impl Language for Spanish {
     /// ```
     fn to_cardinal(&self, num: BigFloat) -> Result<String, Num2Err> {
         if num.is_nan() {
-            return Err(Num2Err::CannotConvert);
+            Err(Num2Err::CannotConvert)
         } else if num.is_inf() {
             self.inf_to_cardinal(&num)
         } else if num.frac().is_zero() {
@@ -437,11 +440,10 @@ impl Language for Spanish {
     /// Ordinal numbers above 10 are unnatural for Spanish speakers. Don't rely on these to convey
     /// meanings
     /// ```rust
-    /// use num2words::lang::{to_language, Lang, Language};
+    /// use num2words::{Lang, Num2Words};
     /// use num_bigfloat::BigFloat;
     ///
-    /// let es = to_language(Lang::Spanish, vec![]);
-    /// let words = es.to_ordinal(BigFloat::from(11)).unwrap();
+    /// let words = Num2Words::new(11).lang(Lang::Spanish).ordinal().to_words().unwrap();
     /// assert_eq!(words, "undécimo");
     /// ```
     fn to_ordinal(&self, num: BigFloat) -> Result<String, Num2Err> {
@@ -512,16 +514,14 @@ impl Language for Spanish {
 
     /// A numeric number which has a `ª` or `º` appended at the end
     /// ```rust
-    /// use num2words::lang::{to_language, Lang, Language};
+    /// use num2words::{Lang, Num2Words};
     /// use num_bigfloat::BigFloat;
     ///
-    /// let num = BigFloat::from(8);
+    /// let words = Num2Words::new(8).lang(Lang::Spanish).ordinal_num().to_words().unwrap();
+    /// assert_eq!(words, "8º", "some mismatch");
     ///
-    /// let es_male = to_language(Lang::Spanish, vec![]);
-    /// assert_eq!(es_male.to_ordinal_num(num).unwrap(), "8º");
-    ///
-    /// let es_female = to_language(Lang::Spanish, vec!["feminine".to_string()]);
-    /// assert_eq!(es_female.to_ordinal_num(num).unwrap(), "8ª");
+    /// let words = Num2Words::new(8).lang(Lang::Spanish).ordinal_num().prefer("femenino");
+    /// assert_eq!(words.to_words().unwrap(), "8ª", "some mismatch2");
     /// ```
     fn to_ordinal_num(&self, num: BigFloat) -> Result<String, Num2Err> {
         match (num.is_inf(), num.is_negative(), num.frac().is_zero()) {
@@ -540,14 +540,14 @@ impl Language for Spanish {
     /// A year is just a Cardinal number. When the BigFloat input is negative, it appends "a.C." to
     /// the positive Cardinal representation
     /// ```rust
-    /// use num2words::lang::{to_language, Lang, Language};
+    /// use num2words::{Lang, Num2Words};
     /// use num_bigfloat::BigFloat;
     ///
-    /// let num = BigFloat::from(2021);
-    /// let es = to_language(Lang::Spanish, vec![]);
+    /// let words = Num2Words::new(2021).lang(Lang::Spanish).year().to_words().unwrap();
+    /// assert_eq!(words, "dos mil veintiuno");
     ///
-    /// assert_eq!(es.to_year(num).unwrap(), "dos mil veintiuno");
-    /// assert_eq!(es.to_year(-num).unwrap(), "dos mil veintiuno a. C.");
+    /// let words = Num2Words::new(-2021).lang(Lang::Spanish).year().to_words().unwrap();
+    /// assert_eq!(words, "dos mil veintiuno a. C.");
     /// ```
     fn to_year(&self, num: BigFloat) -> Result<String, Num2Err> {
         match (num.is_inf(), num.frac().is_zero(), num.int().is_zero()) {
@@ -574,26 +574,38 @@ impl Language for Spanish {
     }
 
     /// A Cardinal number which then the currency word representation is appended at the end.
-    /// `1` is the only exception to the rule.
+    /// Any cardinal that ends in "uno" is the only exception to the rule. For example 41, 21 and 1
     /// The extra decimals are truncated instead of rounded
     /// ```rust
-    /// use num2words::lang::{to_language, Lang, Language};
-    /// use num2words::Currency;
+    /// use num2words::{Currency, Lang, Num2Words};
     /// use num_bigfloat::BigFloat;
     ///
-    /// let es = to_language(Lang::Spanish, vec![]);
+    /// let words =
+    ///     Num2Words::new(-2021).lang(Lang::Spanish).currency(Currency::USD).to_words().unwrap();
+    /// assert_eq!(words, "menos dos mil veintiún US dollars");
     ///
-    /// assert_eq!(
-    ///     es.to_currency(BigFloat::from(-2021), Currency::USD).unwrap(),
-    ///     "menos dos mil veintiuno US dollars"
-    /// );
-    /// assert_eq!(
-    ///     es.to_currency(BigFloat::from(1.01), Currency::USD).unwrap(),
-    ///     "un US dollar con un centavo"
-    /// );
-    /// assert_eq!(es.to_currency(BigFloat::from(1), Currency::USD).unwrap(), "un US dollar");
+    /// let words =
+    ///     Num2Words::new(81.21).lang(Lang::Spanish).currency(Currency::USD).to_words().unwrap();
+    /// assert_eq!(words, "ochenta y un US dollars con veintiún centavos");
+    ///
+    /// let words =
+    ///     Num2Words::new(1.01).lang(Lang::Spanish).currency(Currency::USD).to_words().unwrap();
+    /// assert_eq!(words, "un US dollar con un centavo");
+    ///
+    /// let words = Num2Words::new(1).lang(Lang::Spanish).currency(Currency::USD).to_words().unwrap();
+    /// assert_eq!(words, "un US dollar");
     /// ```
     fn to_currency(&self, num: BigFloat, currency: crate::Currency) -> Result<String, Num2Err> {
+        let strip_uno_into_un = |string: String| -> String {
+            let len = string.len();
+            if string.ends_with("iuno") {
+                string[..len - 3].to_string() + "ún"
+            } else if string.ends_with("uno") {
+                string[..len - 1].to_string()
+            } else {
+                string
+            }
+        };
         if num.is_nan() {
             Err(Num2Err::CannotConvert)
         } else if num.is_inf() {
@@ -604,18 +616,15 @@ impl Language for Spanish {
         } else if num.frac().is_zero() {
             let is_plural = num.int() != 1.into();
             let currency = currency.default_string(is_plural);
-            let cardinal = if is_plural { self.int_to_cardinal(num)? } else { "un".to_string() };
-            return Ok(match cardinal.as_str() {
-                "uno" => format!("un {currency}"),
-                _ => format!("{cardinal} {currency}"),
-            });
+            let cardinal = strip_uno_into_un(self.int_to_cardinal(num)?);
+            return Ok(format!("{cardinal} {currency}"));
         } else {
             let hundred: BigFloat = 100.into();
             let (integral, cents) = (num.int(), num.mul(&hundred).int().rem(&hundred));
             let cents_is_plural = cents != 1.into();
             let (int_words, cent_words) = (
                 self.to_currency(integral, currency)?,
-                if cents_is_plural { self.int_to_cardinal(cents)? } else { "un".to_string() },
+                strip_uno_into_un(self.int_to_cardinal(cents)?),
             );
             let cents_suffix = currency.default_subunit_string("centavo{}", cents_is_plural);
 
