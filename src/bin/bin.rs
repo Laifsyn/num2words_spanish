@@ -1,7 +1,6 @@
+use ::num2words::{Currency, Lang, Num2Words};
 use std::env;
 use std::str::FromStr;
-
-use ::num2words::{Currency, Lang, Num2Words};
 
 const HELP: &str = r#"NAME:
     num2words - convert numbers into words
