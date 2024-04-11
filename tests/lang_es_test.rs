@@ -9,7 +9,7 @@ enum Outputs {
 }
 fn to_words(num: BigFloat, output: Outputs, preference: &[&str]) -> Result<String, Num2Err> {
     let mut driver = Num2Words::new(num).lang(Lang::Spanish);
-    for preference in preference.into_iter() {
+    for preference in preference.iter() {
         driver = driver.prefer(preference.to_string());
     }
     let driver = match output {
