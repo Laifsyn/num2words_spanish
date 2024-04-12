@@ -143,12 +143,8 @@ pub fn to_language(lang: Lang, preferences: Vec<String>) -> Box<dyn Language> {
                 .find(|v: &&String| ["reformed", "1990", "rectifié", "rectification"].contains(&v.as_str()))
                 .is_some();
 
-            Box::new(lang::French::new(
-                feminine,
-                reformed,
-                lang::fr::RegionFrench::CH,
-            ))
-        }
+            Box::new(lang::French::new(feminine, reformed, lang::fr::RegionFrench::CH))
+            }
         Lang::Spanish => {
             use super::es::{DecimalChar, NegativeFlavour};
             let neg_flavour = preferences
