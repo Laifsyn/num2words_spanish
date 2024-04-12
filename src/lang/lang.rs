@@ -78,6 +78,7 @@ impl FromStr for Lang {
     /// | Locale    | Lang              | 42            |
     /// | --------- | ----------------- | ------------- |
     /// | `en`      | `Lang::English`   | forty-two     |
+    /// | `es`      | `Lang::Spanish`   | cuarenta y dos|
     /// | `fr`      | `Lang::French`    | quarante-deux |
     /// | `fr_BE`   | `Lang::French_BE` | quarante-deux |
     /// | `fr_CH`   | `Lang::French_CH` | quarante-deux |
