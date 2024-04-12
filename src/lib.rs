@@ -24,11 +24,11 @@
  * use num2words::*;
  * assert_eq!(
  *     Num2Words::new(42).lang(Lang::French).to_words(),
- *     Ok(String::from("quarante-deux"))	
- * );	
- * assert_eq!(	
- *     Num2Words::new(42).ordinal().to_words(),	
- *     Ok(String::from("forty-second"))	
+ *     Ok(String::from("quarante-deux"))
+ * );
+ * assert_eq!(
+ *     Num2Words::new(42).ordinal().to_words(),
+ *     Ok(String::from("forty-second"))
  * );
  * assert_eq!(
  *     Num2Words::new(42.01).currency(Currency::DOLLAR).to_words(),
