@@ -22,8 +22,14 @@
  *
  * ```rust
  * use num2words::*;
- * assert_eq!(Num2Words::new(42).lang(Lang::French).to_words(), Ok(String::from("quarante-deux")));
- * assert_eq!(Num2Words::new(42).ordinal().to_words(), Ok(String::from("forty-second")));
+ * assert_eq!(
+ *     Num2Words::new(42).lang(Lang::French).to_words(),
+ *     Ok(String::from("quarante-deux"))	
+ * );	
+ * assert_eq!(	
+ *     Num2Words::new(42).ordinal().to_words(),	
+ *     Ok(String::from("forty-second"))	
+ * );
  * assert_eq!(
  *     Num2Words::new(42.01).currency(Currency::DOLLAR).to_words(),
  *     Ok(String::from("forty-two dollars and one cent"))
@@ -112,9 +118,8 @@ mod currency;
 mod lang;
 mod output;
 
+pub use crate::num2words::{Num2Err, Num2Words};
 pub use currency::Currency;
 pub use lang::Lang;
 use lang::Language;
 use output::Output;
-
-pub use crate::num2words::{Num2Err, Num2Words};
