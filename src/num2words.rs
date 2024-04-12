@@ -1,4 +1,3 @@
-#![cfg_attr(rustfmt, rustfmt_skip)]
 use crate::{lang, Currency, Lang, Output};
 use num_bigfloat::BigFloat;
 
