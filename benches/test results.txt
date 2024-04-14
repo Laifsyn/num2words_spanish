@@ -1,0 +1,30 @@
+//8GB RAM 2-cores Codespace
+English                 time:   [159.08 µs 161.34 µs 163.93 µs]
+Found 14 outliers among 100 measurements (14.00%)
+  4 (4.00%) high mild
+  10 (10.00%) high severe
+
+French                  time:   [157.37 µs 159.43 µs 161.73 µs]
+Found 18 outliers among 100 measurements (18.00%)
+  6 (6.00%) high mild
+  12 (12.00%) high severe
+
+French_BE               time:   [157.24 µs 159.91 µs 163.33 µs]
+Found 16 outliers among 100 measurements (16.00%)
+  3 (3.00%) high mild
+  13 (13.00%) high severe
+
+French_CH               time:   [157.60 µs 159.73 µs 162.13 µs]
+Found 18 outliers among 100 measurements (18.00%)
+  11 (11.00%) high mild
+  7 (7.00%) high severe
+
+Spanish                 time:   [17.792 µs 18.141 µs 18.551 µs]
+Found 15 outliers among 100 measurements (15.00%)
+  2 (2.00%) high mild
+  13 (13.00%) high severe
+
+Ukrainian               time:   [158.49 µs 160.56 µs 162.99 µs]
+Found 19 outliers among 100 measurements (19.00%)
+  6 (6.00%) high mild
+  13 (13.00%) high severe

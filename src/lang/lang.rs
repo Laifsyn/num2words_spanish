@@ -15,6 +15,7 @@ pub trait Language {
 
 /// Languages available in `num2words`
 #[allow(non_camel_case_types)]
+#[derive(Copy, Clone, Debug)]
 pub enum Lang {
     /// ```
     /// use num2words::{Num2Words, Lang};
@@ -116,10 +117,16 @@ pub fn to_language(lang: Lang, preferences: Vec<String>) -> Box<dyn Language> {
                 .is_some();
             let reformed = preferences
                 .iter()
-                .find(|v: &&String| ["reformed", "1990", "rectifié", "rectification"].contains(&v.as_str()))
+                .find(|v: &&String| {
+                    ["reformed", "1990", "rectifié", "rectification"].contains(&v.as_str())
+                })
                 .is_some();
 
-            Box::new(lang::French::new(feminine, reformed, lang::fr::RegionFrench::FR))
+            Box::new(lang::French::new(
+                feminine,
+                reformed,
+                lang::fr::RegionFrench::FR,
+            ))
         }
         Lang::French_BE => {
             let feminine = preferences
@@ -128,10 +135,16 @@ pub fn to_language(lang: Lang, preferences: Vec<String>) -> Box<dyn Language> {
                 .is_some();
             let reformed = preferences
                 .iter()
-                .find(|v: &&String| ["reformed", "1990", "rectifié", "rectification"].contains(&v.as_str()))
+                .find(|v: &&String| {
+                    ["reformed", "1990", "rectifié", "rectification"].contains(&v.as_str())
+                })
                 .is_some();
 
-            Box::new(lang::French::new(feminine, reformed, lang::fr::RegionFrench::BE))
+            Box::new(lang::French::new(
+                feminine,
+                reformed,
+                lang::fr::RegionFrench::BE,
+            ))
         }
         Lang::French_CH => {
             let feminine = preferences
@@ -140,11 +153,17 @@ pub fn to_language(lang: Lang, preferences: Vec<String>) -> Box<dyn Language> {
                 .is_some();
             let reformed = preferences
                 .iter()
-                .find(|v: &&String| ["reformed", "1990", "rectifié", "rectification"].contains(&v.as_str()))
+                .find(|v: &&String| {
+                    ["reformed", "1990", "rectifié", "rectification"].contains(&v.as_str())
+                })
                 .is_some();
 
-            Box::new(lang::French::new(feminine, reformed, lang::fr::RegionFrench::CH))
-            }
+            Box::new(lang::French::new(
+                feminine,
+                reformed,
+                lang::fr::RegionFrench::CH,
+            ))
+        }
         Lang::Spanish => {
             use super::es::{DecimalChar, NegativeFlavour};
             let neg_flavour = preferences

@@ -20,5 +20,12 @@ path = "src/lib.rs"
 name = "num2words"
 path = "src/bin/bin.rs"
 
+[[bench]]
+name = "num2words"
+harness = false
+
 [dependencies]
 num-bigfloat = { version = "^1.7.1", default-features = false }
+
+[dev-dependencies]
+criterion = "0.5.1"
