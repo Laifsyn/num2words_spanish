@@ -62,8 +62,7 @@ fn test_lang_es() {
     let word = driver(Outputs::Ordinal, BigFloat::from(141_100_211_021u64)).unwrap();
     assert_eq!(
         word,
-        "centésimo cuadragésimo primero billonésimo centésimo millonésimo ducentésimo undécimo \
-         milésimo vigésimoprimero"
+        "ciento cuarenta y unobillonésimo cienmillonésimo doscientos oncemilésimo vigésimoprimero"
     );
     assert_eq!(driver(Outputs::Ordinal, BigFloat::from(14)).unwrap(), "decimocuarto");
     assert_eq!(driver(Outputs::Ordinal, BigFloat::from(1)).unwrap(), "primero");
@@ -72,6 +71,13 @@ fn test_lang_es() {
     assert_eq!(driver(Outputs::Ordinal, BigFloat::from(27)).unwrap(), "vigesimoséptimo");
     assert_eq!(driver(Outputs::Ordinal, BigFloat::from(26)).unwrap(), "vigésimosexto");
     assert_eq!(driver(Outputs::Ordinal, BigFloat::from(20)).unwrap(), "vigésimo");
+    assert_eq!(driver(Outputs::Ordinal, BigFloat::from(1000)).unwrap(), "milésimo");
+    assert_eq!(driver(Outputs::Ordinal, BigFloat::from(2000)).unwrap(), "dosmilésimo");
+    assert_eq!(driver(Outputs::Ordinal, BigFloat::from(3100)).unwrap(), "tresmilésimo centésimo");
+    assert_eq!(
+        driver(Outputs::Ordinal, BigFloat::from(54_223_231)).unwrap(),
+        "cincuenta y cuatromillonésimo doscientos veintitresmilésimo ducentésimo trigésimo primero"
+    );
 
     let word = to_words(BigFloat::from(14), Outputs::OrdinalNum, &["f"]);
     assert_eq!(word.unwrap(), "14ª");
