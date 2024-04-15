@@ -486,8 +486,7 @@ impl Language for Spanish {
                         }
                     };
                     match tens {
-                        // case `?_001` => `? primer`
-                        // 0 if triplet < 10 && i > 0 => words.push(String::from("")),
+                        // case `?_001` => `? primer@`
                         0 => words.push(String::from(unit_word) + gender()),
                         // case `?_119` => `? centésim@ decimonoven@`
                         // case `?_110` => `? centésim@ decim@`
@@ -901,22 +900,18 @@ mod tests {
     fn lang_es_ordinal() {
         let es = Spanish::default().with_feminine(true);
         let ordinal = |num: i128| es.to_ordinal(to(num)).unwrap();
-        assert_eq!(ordinal(1_101_001), "primer millonésima centésima primera milésima primera");
-        assert_eq!(ordinal(2_001_022), "segunda millonésima primer milésima vigésima segunda");
-        assert_eq!(
-            ordinal(12_114_011),
-            "duodécima millonésima centésima decimocuarta milésima undécima"
-        );
+        assert_eq!(ordinal(1_101_001), "millonésima ciento unomilésima primera");
+        assert_eq!(ordinal(2_001_022), "dosmillonésima milésima vigésimasegunda");
+        assert_eq!(ordinal(12_114_011), "docemillonésima ciento catorcemilésima undécima");
         assert_eq!(
             ordinal(124_121_091),
-            "centésima vigésima cuarta millonésima centésima vigésima primera milésima nonagésima \
-             primera"
+            "ciento veinticuatromillonésima ciento veintiunomilésima nonagésima primera"
         );
         let es = Spanish::default().with_plural(true);
         let ordinal = |num: i128| es.to_ordinal(to(num)).unwrap();
         assert_eq!(
             ordinal(124_001_091),
-            "centésimo vigésimo cuarto millonésimo primer milésimo nonagésimo primeros"
+            "ciento veinticuatromillonésimo milésimo nonagésimo primeros"
         );
     }
 
