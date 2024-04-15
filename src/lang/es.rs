@@ -476,6 +476,14 @@ impl Language for Spanish {
 
             if tens != 0 || units != 0 {
                 let unit_word = UNIDADES[units];
+                let decenas = || -> String {
+                    // As lazy operation because there's no guarantees we will
+                    // inmediately use the String
+                    match units {
+                        7 => DECENAS[tens].replace("é", "e"),
+                        _ => String::from(DECENAS[tens]),
+                    }
+                };
                 match tens {
                     // case `?_001` => `? primer`
                     0 if triplet == 1 && i > 0 => words.push(String::from("primer")),
@@ -483,12 +491,17 @@ impl Language for Spanish {
                     // case `?_119` => `? centésim@ decimonoven@`
                     // case `?_110` => `? centésim@ decim@`
                     1 => words.push(String::from(DIECIS[units]) + gender()),
+                    2 if units != 0 => words.push(
+                        // case `122 => `? centésim@ vigésim@segund@`
+                        // for DECENAS[1..=2], the unit word actually stays sticked to the DECENAS
+                        decenas() + format!("{g}{unit_word}{g}", g = gender()).as_str(),
+                    ),
                     _ => {
-                        let ten = DECENAS[tens];
+                        let ten = decenas();
                         let word = match units {
                             // case `?_120 => `? centésim@ vigésim@`
                             0 => String::from(ten),
-                            // case `?_122 => `? centésim@ vigésim@ segund@`
+                            // case `?_132 => `? centésim@ trigésim@ segund@`
                             _ => format!("{ten}{} {unit_word}", gender()),
                         };
 

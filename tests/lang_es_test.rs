@@ -63,12 +63,15 @@ fn test_lang_es() {
     assert_eq!(
         word,
         "centésimo cuadragésimo primero billonésimo centésimo millonésimo ducentésimo undécimo \
-         milésimo vigésimo primero"
+         milésimo vigésimoprimero"
     );
     assert_eq!(driver(Outputs::Ordinal, BigFloat::from(14)).unwrap(), "decimocuarto");
     assert_eq!(driver(Outputs::Ordinal, BigFloat::from(1)).unwrap(), "primero");
     assert_eq!(driver(Outputs::Ordinal, BigFloat::from(2)).unwrap(), "segundo");
     assert_eq!(driver(Outputs::Ordinal, BigFloat::from(3)).unwrap(), "tercero");
+    assert_eq!(driver(Outputs::Ordinal, BigFloat::from(27)).unwrap(), "vigesimoséptimo");
+    assert_eq!(driver(Outputs::Ordinal, BigFloat::from(26)).unwrap(), "vigésimosexto");
+    assert_eq!(driver(Outputs::Ordinal, BigFloat::from(20)).unwrap(), "vigésimo");
 
     let word = to_words(BigFloat::from(14), Outputs::OrdinalNum, &["f"]);
     assert_eq!(word.unwrap(), "14ª");
