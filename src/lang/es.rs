@@ -52,13 +52,12 @@ const CENTENAS: [&str; 10] = [
 // To ensure both arrays doesn't desync
 const MILLAR_SIZE: usize = 22;
 /// from source: https://es.wikipedia.org/wiki/Anexo:Nombres_de_los_n%C3%BAmeros_en_espa%C3%B1ol
-/// Based on https://en.wikipedia.org/wiki/Names_of_large_numbers, each thousands is from the Short Scales,
-/// which each thousands can be defined as 10^(3n+3) magnitude, where n is replaced by the index of
-/// the Array. For example 10^3 = Thousands (starts at n=1 here)
-/// 10^6 = Millions
-/// 10^9 = Billions
-/// 10^33 = Decillion
-// Saltos en Millares
+/// The amount of zeros after the unit of a particular milliard, can be calculated through
+/// ((Index of the Milliard) * 2 - 2) * 3  [Is the index to get the milliard. Index 21 gets
+/// vigintillion] `(Index of the Milliard) * 6 - 6`  [If we de-factorize]
+/// For example, Trillion is stored at Index 4, so the amount of zeros after the unit is 4 * 6 - 6 =
+/// `18` let i = (Millare's index) - 2
+/// let zeros = (i * 2 )
 const MILLARES: [&str; MILLAR_SIZE] = [
     "",
     "mil",
@@ -533,11 +532,11 @@ impl Spanish {
             }
             // Add the next Milliard if there's any.
             if (triplet != 0) || (last_triplet != 0 && milliard_index > 1) {
-                if i > MILLARES.len() - 1 {
+                if milliard_index > MILLARES.len() - 1 {
                     return Err(Num2Err::CannotConvert);
                 }
                 // Boolean that checks if next Milliard is plural
-                let plural = triplet > 1;
+                let plural = triplet > 1 || last_triplet > 0;
                 match plural {
                     false => words.push(String::from(MILLAR[milliard_index])),
                     true => words.push(String::from(MILLARES[milliard_index])),
@@ -973,12 +972,32 @@ mod tests {
     fn lang_es_milliards() {
         let es = Spanish::default();
         assert_eq!(es.int_to_cardinal(to(1_000_000)).unwrap(), "un millón");
-        assert_eq!(es.int_to_cardinal(to(1_000_000_000)).unwrap(), "mil millón");
+        assert_eq!(es.int_to_cardinal(to(1_000_000_000)).unwrap(), "mil millones");
         assert_eq!(es.int_to_cardinal(to(1_000_000_000_000.0f64)).unwrap(), "un billón");
         assert_eq!(es.int_to_cardinal(to(1_000_000_000_000_000_000.0f64)).unwrap(), "un trillón");
         assert_eq!(
-            es.int_to_cardinal(to(9_008_007_006_000_000_000_000_000_000.0f64)).unwrap(),
-            "nueve mil ocho cuatrillones siete mil seis trillones"
+            es.int_to_cardinal(to(9_008_001_006_000_000_000_000_000_000.0f64)).unwrap(),
+            "nueve mil ocho cuatrillones mil seis trillones"
+        );
+        assert_eq!(
+            es.int_to_cardinal(to(9_008_000_001_000_000_000_000_000_000.0f64)).unwrap(),
+            "nueve mil ocho cuatrillones un trillón"
+        );
+        assert_eq!(
+            es.int_to_cardinal(to(8_007_006_005_000_000_000_000_000.0f64)).unwrap(),
+            "ocho cuatrillones siete mil seis trillones cinco mil billones"
+        );
+        assert_eq!(
+            es.int_to_cardinal(to(8_007_000_005_000_000_000_000_000.0f64)).unwrap(),
+            "ocho cuatrillones siete mil trillones cinco mil billones"
+        );
+        assert_eq!(
+            es.int_to_cardinal(to(8_007_006_000_000_000_000_000_000.0f64)).unwrap(),
+            "ocho cuatrillones siete mil seis trillones"
+        );
+        assert_eq!(
+            es.int_to_cardinal(to(8_007_000_000_001_000_000_000_000.0f64)).unwrap(),
+            "ocho cuatrillones siete mil trillones un billón"
         );
     }
     #[test]
@@ -1042,10 +1061,22 @@ mod tests {
         let es = Spanish::default();
         let to_cardinal = Language::to_cardinal;
         assert_eq!(to_cardinal(&es, to(f64::NAN)).unwrap_err(), Num2Err::CannotConvert);
-        // Vigintillion supposedly has 63 zeroes, so anything beyond ~66 digits should fail with
-        // current impl
-        let some_big_num = BigFloat::from_u8(2).pow(&BigFloat::from_u8(230));
-        assert_eq!(to_cardinal(&es, to(some_big_num)).unwrap_err(), Num2Err::CannotConvert);
+        // unit of Vigintillion, which is at index 21 has 120 zeros, so anything beyond 120+6 digits
+        // should fail
+        let some_big_num = BigFloat::from_u8(2).pow(&BigFloat::from_u16(418));
+
+        assert_eq!(
+            to_cardinal(&es, to(some_big_num)).unwrap(), /* There's no guarantee that this
+                                                          * number is correct */
+            "seiscientos setenta y seis mil novecientos veintiún vigintillones trescientos doce \
+             mil cuarenta y uno novendecillones doscientos catorce mil quinientos sesenta y cinco \
+             octodecillones trescientos veintiseis mil setecientos sesenta y uno septendecillones \
+             doscientos setenta y cinco mil cuatrocientos veinticinco sexdecillones quinientos \
+             cincuenta y siete mil quinientos cuarenta y cuatro quindeciollones setecientos \
+             ochenta y cuatro mil trescientos cuatrodecillones"
+        );
+        let too_big_num = BigFloat::from_u8(2).pow(&BigFloat::from_u16(419));
+        assert_eq!(to_cardinal(&es, to(too_big_num)).unwrap_err(), Num2Err::CannotConvert);
 
         let to_ordinal = Language::to_ordinal;
         assert_eq!(to_ordinal(&es, to(0.001)).unwrap_err(), Num2Err::FloatingOrdinal);
