@@ -440,7 +440,6 @@ impl Spanish {
         currency.default_subunit_string("centavo{}", plural_form)
     }
 
-    // Only should be called if you're sure the number has no fraction
     fn int_to_cardinal(&self, num: BigFloat) -> Result<String, Num2Err> {
         // Don't convert a number with fraction, NaN or Infinity
         if !num.frac().is_zero() || num.is_nan() || num.is_inf() {
@@ -452,7 +451,8 @@ impl Spanish {
         }
 
         let mut words = vec![];
-        for (i, triplet) in self.en_miles(num.int()).into_iter().enumerate().rev() {
+        let triplets = self.en_miles(num);
+        for (i, triplet) in triplets.iter().copied().enumerate().rev() {
             let hundreds = ((triplet / 100) % 10) as usize;
             let tens = ((triplet / 10) % 10) as usize;
             let units = (triplet % 10) as usize;
@@ -471,7 +471,13 @@ impl Spanish {
                     // case `1_001_000` => `un millón mil` instead of `un millón un mil`
                     // Explanation: Second triplet is always read as thousand, so we
                     // don't need to say "un mil"
-                    (_, 1) if triplet == 1 => "",
+                    (_, i) if triplet == 1 && i > 0 => {
+                        if i % 2 == 0 {
+                            "un"
+                        } else {
+                            ""
+                        }
+                    }
                     // case `001_001_100...` => `un billón un millón cien mil...` instead of
                     // `uno billón uno millón cien mil...`
                     // All `triplets == 1`` can can be named as "un". except for first or second
@@ -508,16 +514,33 @@ impl Spanish {
                 }
             }
 
+            /*
+            Explanation
+            011 010 009 008 007 006 005 004 003 002 001 000 [This is the index of milliard in triplet format]
+              x   6   x   5   x   4   x   3   x   2   x     [The actual Index we should be calling, x is replaced by 1]
+            1 : Thousand
+            2 : Million
+            3 : Billion
+            4 : Trillion
+            5 : Quadrillion
+            6 : Quintillion
+            */
+            let milliard_index = if i % 2 == 0 { i / 2 + 1 } else { 1 };
+            // Triplet of the last iteration
+            let last_triplet = triplets.get(i + 1).copied().unwrap_or(0);
+            if i == 0 {
+                continue;
+            }
             // Add the next Milliard if there's any.
-            if i != 0 && triplet != 0 {
+            if (triplet != 0) || (last_triplet != 0 && milliard_index > 1) {
                 if i > MILLARES.len() - 1 {
                     return Err(Num2Err::CannotConvert);
                 }
                 // Boolean that checks if next Milliard is plural
-                let plural = triplet != 1;
+                let plural = triplet > 1;
                 match plural {
-                    false => words.push(String::from(MILLAR[i])),
-                    true => words.push(String::from(MILLARES[i])),
+                    false => words.push(String::from(MILLAR[milliard_index])),
+                    true => words.push(String::from(MILLARES[milliard_index])),
                 }
             }
         }
@@ -946,6 +969,18 @@ mod tests {
         assert_eq!(es.int_to_cardinal(to(800)).unwrap(), "ochocientos");
     }
 
+    #[test]
+    fn lang_es_milliards() {
+        let es = Spanish::default();
+        assert_eq!(es.int_to_cardinal(to(1_000_000)).unwrap(), "un millón");
+        assert_eq!(es.int_to_cardinal(to(1_000_000_000)).unwrap(), "mil millón");
+        assert_eq!(es.int_to_cardinal(to(1_000_000_000_000.0f64)).unwrap(), "un billón");
+        assert_eq!(es.int_to_cardinal(to(1_000_000_000_000_000_000.0f64)).unwrap(), "un trillón");
+        assert_eq!(
+            es.int_to_cardinal(to(9_008_007_006_000_000_000_000_000_000.0f64)).unwrap(),
+            "nueve mil ocho cuatrillones siete mil seis trillones"
+        );
+    }
     #[test]
     fn lang_es_thousands() {
         let es = Spanish::default();
