@@ -5,7 +5,7 @@ use std::str::FromStr;
 use num_bigfloat::BigFloat;
 
 use super::Language;
-use crate::Num2Err;
+use crate::{Currency, Num2Err};
 // Reference that can hopefully be implemented seamlessly: https://es.wikipedia.org/wiki/Anexo:Nombres_de_los_n%C3%BAmeros_en_espa%C3%B1ol
 const UNIDADES: [&str; 10] =
     ["", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve"];
@@ -263,6 +263,183 @@ impl Spanish {
         thousands
     }
 
+    fn currencies(&self, currency: Currency, plural_form: bool) -> String {
+        let dollar: &str = match currency {
+            Currency::AED => "dirham{}",
+            Currency::ARS => "peso{} argentino{}",
+            Currency::AUD => {
+                if plural_form {
+                    "dólares australianos"
+                } else {
+                    "dólar australiano"
+                }
+            }
+            Currency::BRL => {
+                if plural_form {
+                    "reales brasileño"
+                } else {
+                    "real brasileño"
+                }
+            }
+            Currency::CAD => {
+                if plural_form {
+                    "dólares canadienses"
+                } else {
+                    "dólar canadiense"
+                }
+            }
+            Currency::CHF => "franco{} suizo{}",
+            Currency::CLP => "peso{} chileno{}",
+            Currency::CNY => {
+                if plural_form {
+                    "yuanes"
+                } else {
+                    "yuan"
+                }
+            }
+            Currency::COP => "peso{} colombiano{}",
+            Currency::CRC => {
+                if plural_form {
+                    "colones"
+                } else {
+                    "colón"
+                }
+            }
+            Currency::DINAR => {
+                if plural_form {
+                    "dinares"
+                } else {
+                    "dinar"
+                }
+            }
+            Currency::DOLLAR => {
+                if plural_form {
+                    "dólares"
+                } else {
+                    "dólar"
+                }
+            }
+            Currency::DZD => {
+                if plural_form {
+                    "dinares argelinos"
+                } else {
+                    "dinar argelino"
+                }
+            }
+            Currency::EUR => "euro{}",
+            Currency::GBP => "libra{} esterlina{}",
+            Currency::HKD => {
+                if plural_form {
+                    "dólares de Hong Kong"
+                } else {
+                    "dólar de Hong Kong"
+                }
+            }
+            Currency::IDR => "rupia{} indonesia{}",
+            Currency::ILS => {
+                // https://www.rae.es/dpd/s%C3%A9quel
+                if plural_form { "séqueles" } else { "séquel" }
+            }
+            Currency::INR => "rupia{}",
+            Currency::JPY => {
+                if plural_form {
+                    "yenes"
+                } else {
+                    "yen"
+                }
+            }
+            Currency::KRW => "won{}",
+            Currency::KWD => {
+                if plural_form {
+                    "dinares kuwaitíes"
+                } else {
+                    "dinar kuwaití"
+                }
+            }
+            Currency::KZT => "tenge{}",
+            Currency::MXN => "peso{} mexicano{}",
+            Currency::MYR => "ringgit{}",
+            Currency::NOK => "corona{} noruega{}",
+            Currency::NZD => {
+                if plural_form {
+                    "dólares neozelandeses"
+                } else {
+                    "dólar neozelandés"
+                }
+            }
+            Currency::PEN => {
+                if plural_form {
+                    "soles"
+                } else {
+                    "sol"
+                }
+            }
+            Currency::PESO => "peso{}",
+            Currency::PHP => "peso{} filipino{}",
+            Currency::PLN => "zloty{}",
+            Currency::QAR => {
+                if plural_form {
+                    "riyales cataríes"
+                } else {
+                    "riyal catarí"
+                }
+            }
+            Currency::RIYAL => {
+                if plural_form {
+                    "riyales"
+                } else {
+                    "riyal"
+                }
+            }
+            Currency::RUB => "rublo{} ruso{}",
+            Currency::SAR => {
+                if plural_form {
+                    "riyales saudíes"
+                } else {
+                    "riyal saudí"
+                }
+            }
+            Currency::SGD => {
+                if plural_form {
+                    "dólares singapurenses"
+                } else {
+                    "dólar singapurense"
+                }
+            }
+            Currency::THB => {
+                if plural_form {
+                    "bahts tailandeses"
+                } else {
+                    "baht tailandés"
+                }
+            }
+            Currency::TRY => "lira{}",
+            Currency::TWD => {
+                if plural_form {
+                    "dólares taiwaneses"
+                } else {
+                    "dólar taiwanes"
+                }
+            }
+            Currency::UAH => "grivna{}",
+            Currency::USD => {
+                if plural_form {
+                    "dólares estadounidenses"
+                } else {
+                    "dólar estadounidense"
+                }
+            }
+            Currency::UYU => "peso{} uruguayo{}",
+            Currency::VND => "dong{}",
+            Currency::ZAR => "rand{} sudafricano{}",
+        };
+        dollar.replace("{}", if plural_form { "s" } else { "" })
+    }
+
+    fn cents(&self, currency: Currency, plural_form: bool) -> String {
+        currency.default_subunit_string("centavo{}", plural_form)
+    }
+
     // Only should be called if you're sure the number has no fraction
     fn int_to_cardinal(&self, num: BigFloat) -> Result<String, Num2Err> {
         // Don't convert a number with fraction, NaN or Infinity
@@ -481,7 +658,7 @@ impl Language for Spanish {
                         // As lazy operation because there's no guarantees we will
                         // inmediately use the String
                         match units {
-                            7 => DECENAS[tens].replace("é", "e"),
+                            7 => DECENAS[tens].replace('é', "e"),
                             _ => String::from(DECENAS[tens]),
                         }
                     };
@@ -501,7 +678,7 @@ impl Language for Spanish {
                             let ten = decenas();
                             let word = match units {
                                 // case `?_120 => `? centésim@ vigésim@`
-                                0 => String::from(ten),
+                                0 => ten,
                                 // case `?_132 => `? centésim@ trigésim@ segund@`
                                 _ => format!("{ten}{} {unit_word}", gender()),
                             };
@@ -607,18 +784,18 @@ impl Language for Spanish {
     ///
     /// let words =
     ///     Num2Words::new(-2021).lang(Lang::Spanish).currency(Currency::USD).to_words().unwrap();
-    /// assert_eq!(words, "menos dos mil veintiún US dollars");
+    /// assert_eq!(words, "menos dos mil veintiún dólares estadounidenses");
     ///
     /// let words =
     ///     Num2Words::new(81.21).lang(Lang::Spanish).currency(Currency::USD).to_words().unwrap();
-    /// assert_eq!(words, "ochenta y un US dollars con veintiún centavos");
+    /// assert_eq!(words, "ochenta y un dólares estadounidenses con veintiún centavos");
     ///
     /// let words =
     ///     Num2Words::new(1.01).lang(Lang::Spanish).currency(Currency::USD).to_words().unwrap();
-    /// assert_eq!(words, "un US dollar con un centavo");
+    /// assert_eq!(words, "un dólar estadounidense con un centavo");
     ///
     /// let words = Num2Words::new(1).lang(Lang::Spanish).currency(Currency::USD).to_words().unwrap();
-    /// assert_eq!(words, "un US dollar");
+    /// assert_eq!(words, "un dólar estadounidense");
     /// ```
     fn to_currency(&self, num: BigFloat, currency: crate::Currency) -> Result<String, Num2Err> {
         let strip_uno_into_un = |string: String| -> String {
@@ -634,13 +811,13 @@ impl Language for Spanish {
         if num.is_nan() {
             Err(Num2Err::CannotConvert)
         } else if num.is_inf() {
-            let currency = currency.default_string(true);
+            let currency = self.currencies(currency, true);
             let inf = self.inf_to_cardinal(&num)? + "de {}";
             let word = inf.replace("{}", &currency);
             return Ok(word);
         } else if num.frac().is_zero() {
             let is_plural = num.int() != 1.into();
-            let currency = currency.default_string(is_plural);
+            let currency = self.currencies(currency, is_plural);
             let cardinal = strip_uno_into_un(self.int_to_cardinal(num)?);
             return Ok(format!("{cardinal} {currency}"));
         } else {
@@ -651,7 +828,7 @@ impl Language for Spanish {
                 self.to_currency(integral, currency)?,
                 strip_uno_into_un(self.int_to_cardinal(cents)?),
             );
-            let cents_suffix = currency.default_subunit_string("centavo{}", cents_is_plural);
+            let cents_suffix = self.cents(currency, cents_is_plural);
 
             if cents.is_zero() {
                 return Ok(int_words);

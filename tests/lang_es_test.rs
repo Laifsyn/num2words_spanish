@@ -90,8 +90,8 @@ fn test_lang_es() {
     assert_eq!(word.unwrap(), "dos mil veintiuno a. C.");
 
     let word = to_words(BigFloat::from(21_001.21), Outputs::Currency, &[]);
-    assert_eq!(word.unwrap(), "veintiún mil un US dollars con veintiún centavos");
+    assert_eq!(word.unwrap(), "veintiún mil un dólares estadounidenses con veintiún centavos");
 
     let word = to_words(BigFloat::from(21.01), Outputs::Currency, &[]);
-    assert_eq!(word.unwrap(), "veintiún US dollars con un centavo");
+    assert_eq!(word.unwrap(), "veintiún dólares estadounidenses con un centavo");
 }
