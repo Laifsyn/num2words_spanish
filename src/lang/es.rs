@@ -5,7 +5,7 @@ use std::str::FromStr;
 use num_bigfloat::BigFloat;
 
 use super::Language;
-use crate::Num2Err;
+use crate::{Currency, Num2Err};
 // Reference that can hopefully be implemented seamlessly: https://es.wikipedia.org/wiki/Anexo:Nombres_de_los_n%C3%BAmeros_en_espa%C3%B1ol
 const UNIDADES: [&str; 10] =
     ["", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve"];
@@ -52,13 +52,12 @@ const CENTENAS: [&str; 10] = [
 // To ensure both arrays doesn't desync
 const MILLAR_SIZE: usize = 22;
 /// from source: https://es.wikipedia.org/wiki/Anexo:Nombres_de_los_n%C3%BAmeros_en_espa%C3%B1ol
-/// Based on https://en.wikipedia.org/wiki/Names_of_large_numbers, each thousands is from the Short Scales,
-/// which each thousands can be defined as 10^(3n+3) magnitude, where n is replaced by the index of
-/// the Array. For example 10^3 = Thousands (starts at n=1 here)
-/// 10^6 = Millions
-/// 10^9 = Billions
-/// 10^33 = Decillion
-// Saltos en Millares
+/// The amount of zeros after the unit of a particular milliard, can be calculated through
+/// ((Index of the Milliard) * 2 - 2) * 3  [Is the index to get the milliard. Index 21 gets
+/// vigintillion] `(Index of the Milliard) * 6 - 6`  [If we de-factorize]
+/// For example, Trillion is stored at Index 4, so the amount of zeros after the unit is 4 * 6 - 6 =
+/// `18` let i = (Millare's index) - 2
+/// let zeros = (i * 2 )
 const MILLARES: [&str; MILLAR_SIZE] = [
     "",
     "mil",
@@ -263,7 +262,183 @@ impl Spanish {
         thousands
     }
 
-    // Only should be called if you're sure the number has no fraction
+    fn currencies(&self, currency: Currency, plural_form: bool) -> String {
+        let dollar: &str = match currency {
+            Currency::AED => "dirham{}",
+            Currency::ARS => "peso{} argentino{}",
+            Currency::AUD => {
+                if plural_form {
+                    "dólares australianos"
+                } else {
+                    "dólar australiano"
+                }
+            }
+            Currency::BRL => {
+                if plural_form {
+                    "reales brasileño"
+                } else {
+                    "real brasileño"
+                }
+            }
+            Currency::CAD => {
+                if plural_form {
+                    "dólares canadienses"
+                } else {
+                    "dólar canadiense"
+                }
+            }
+            Currency::CHF => "franco{} suizo{}",
+            Currency::CLP => "peso{} chileno{}",
+            Currency::CNY => {
+                if plural_form {
+                    "yuanes"
+                } else {
+                    "yuan"
+                }
+            }
+            Currency::COP => "peso{} colombiano{}",
+            Currency::CRC => {
+                if plural_form {
+                    "colones"
+                } else {
+                    "colón"
+                }
+            }
+            Currency::DINAR => {
+                if plural_form {
+                    "dinares"
+                } else {
+                    "dinar"
+                }
+            }
+            Currency::DOLLAR => {
+                if plural_form {
+                    "dólares"
+                } else {
+                    "dólar"
+                }
+            }
+            Currency::DZD => {
+                if plural_form {
+                    "dinares argelinos"
+                } else {
+                    "dinar argelino"
+                }
+            }
+            Currency::EUR => "euro{}",
+            Currency::GBP => "libra{} esterlina{}",
+            Currency::HKD => {
+                if plural_form {
+                    "dólares de Hong Kong"
+                } else {
+                    "dólar de Hong Kong"
+                }
+            }
+            Currency::IDR => "rupia{} indonesia{}",
+            Currency::ILS => {
+                // https://www.rae.es/dpd/s%C3%A9quel
+                if plural_form { "séqueles" } else { "séquel" }
+            }
+            Currency::INR => "rupia{}",
+            Currency::JPY => {
+                if plural_form {
+                    "yenes"
+                } else {
+                    "yen"
+                }
+            }
+            Currency::KRW => "won{}",
+            Currency::KWD => {
+                if plural_form {
+                    "dinares kuwaitíes"
+                } else {
+                    "dinar kuwaití"
+                }
+            }
+            Currency::KZT => "tenge{}",
+            Currency::MXN => "peso{} mexicano{}",
+            Currency::MYR => "ringgit{}",
+            Currency::NOK => "corona{} noruega{}",
+            Currency::NZD => {
+                if plural_form {
+                    "dólares neozelandeses"
+                } else {
+                    "dólar neozelandés"
+                }
+            }
+            Currency::PEN => {
+                if plural_form {
+                    "soles"
+                } else {
+                    "sol"
+                }
+            }
+            Currency::PESO => "peso{}",
+            Currency::PHP => "peso{} filipino{}",
+            Currency::PLN => "zloty{}",
+            Currency::QAR => {
+                if plural_form {
+                    "riyales cataríes"
+                } else {
+                    "riyal catarí"
+                }
+            }
+            Currency::RIYAL => {
+                if plural_form {
+                    "riyales"
+                } else {
+                    "riyal"
+                }
+            }
+            Currency::RUB => "rublo{} ruso{}",
+            Currency::SAR => {
+                if plural_form {
+                    "riyales saudíes"
+                } else {
+                    "riyal saudí"
+                }
+            }
+            Currency::SGD => {
+                if plural_form {
+                    "dólares singapurenses"
+                } else {
+                    "dólar singapurense"
+                }
+            }
+            Currency::THB => {
+                if plural_form {
+                    "bahts tailandeses"
+                } else {
+                    "baht tailandés"
+                }
+            }
+            Currency::TRY => "lira{}",
+            Currency::TWD => {
+                if plural_form {
+                    "dólares taiwaneses"
+                } else {
+                    "dólar taiwanes"
+                }
+            }
+            Currency::UAH => "grivna{}",
+            Currency::USD => {
+                if plural_form {
+                    "dólares estadounidenses"
+                } else {
+                    "dólar estadounidense"
+                }
+            }
+            Currency::UYU => "peso{} uruguayo{}",
+            Currency::VND => "dong{}",
+            Currency::ZAR => "rand{} sudafricano{}",
+        };
+        dollar.replace("{}", if plural_form { "s" } else { "" })
+    }
+
+    fn cents(&self, currency: Currency, plural_form: bool) -> String {
+        currency.default_subunit_string("centavo{}", plural_form)
+    }
+
     fn int_to_cardinal(&self, num: BigFloat) -> Result<String, Num2Err> {
         // Don't convert a number with fraction, NaN or Infinity
         if !num.frac().is_zero() || num.is_nan() || num.is_inf() {
@@ -275,7 +450,8 @@ impl Spanish {
         }
 
         let mut words = vec![];
-        for (i, triplet) in self.en_miles(num.int()).into_iter().enumerate().rev() {
+        let triplets = self.en_miles(num);
+        for (i, triplet) in triplets.iter().copied().enumerate().rev() {
             let hundreds = ((triplet / 100) % 10) as usize;
             let tens = ((triplet / 10) % 10) as usize;
             let units = (triplet % 10) as usize;
@@ -294,7 +470,13 @@ impl Spanish {
                     // case `1_001_000` => `un millón mil` instead of `un millón un mil`
                     // Explanation: Second triplet is always read as thousand, so we
                     // don't need to say "un mil"
-                    (_, 1) if triplet == 1 => "",
+                    (_, i) if triplet == 1 && i > 0 => {
+                        if i % 2 == 0 {
+                            "un"
+                        } else {
+                            ""
+                        }
+                    }
                     // case `001_001_100...` => `un billón un millón cien mil...` instead of
                     // `uno billón uno millón cien mil...`
                     // All `triplets == 1`` can can be named as "un". except for first or second
@@ -331,16 +513,33 @@ impl Spanish {
                 }
             }
 
+            /*
+            Explanation
+            011 010 009 008 007 006 005 004 003 002 001 000 [This is the index of milliard in triplet format]
+              x   6   x   5   x   4   x   3   x   2   x     [The actual Index we should be calling, x is replaced by 1]
+            1 : Thousand
+            2 : Million
+            3 : Billion
+            4 : Trillion
+            5 : Quadrillion
+            6 : Quintillion
+            */
+            let milliard_index = if i % 2 == 0 { i / 2 + 1 } else { 1 };
+            // Triplet of the last iteration
+            let last_triplet = triplets.get(i + 1).copied().unwrap_or(0);
+            if i == 0 {
+                continue;
+            }
             // Add the next Milliard if there's any.
-            if i != 0 && triplet != 0 {
-                if i > MILLARES.len() - 1 {
+            if (triplet != 0) || (last_triplet != 0 && milliard_index > 1) {
+                if milliard_index > MILLARES.len() - 1 {
                     return Err(Num2Err::CannotConvert);
                 }
                 // Boolean that checks if next Milliard is plural
-                let plural = triplet != 1;
+                let plural = triplet > 1 || last_triplet > 0;
                 match plural {
-                    false => words.push(String::from(MILLAR[i])),
-                    true => words.push(String::from(MILLARES[i])),
+                    false => words.push(String::from(MILLAR[milliard_index])),
+                    true => words.push(String::from(MILLARES[milliard_index])),
                 }
             }
         }
@@ -465,34 +664,49 @@ impl Language for Spanish {
             .rev()
             .filter(|(_, triplet)| *triplet != 0)
         {
-            let hundreds = ((triplet / 100) % 10) as usize;
-            let tens = ((triplet / 10) % 10) as usize;
-            let units = (triplet % 10) as usize;
+            if i == 0 {
+                let hundreds = ((triplet / 100) % 10) as usize;
+                let tens = ((triplet / 10) % 10) as usize;
+                let units = (triplet % 10) as usize;
 
-            if hundreds > 0 {
-                // case `500` => `quingentesim@`
-                words.push(String::from(CENTENAS[hundreds]) + gender());
-            }
+                if hundreds > 0 {
+                    // case `500` => `quingentesim@`
+                    words.push(String::from(CENTENAS[hundreds]) + gender());
+                }
 
-            if tens != 0 || units != 0 {
-                let unit_word = UNIDADES[units];
-                match tens {
-                    // case `?_001` => `? primer`
-                    0 if triplet == 1 && i > 0 => words.push(String::from("primer")),
-                    0 => words.push(String::from(unit_word) + gender()),
-                    // case `?_119` => `? centésim@ decimonoven@`
-                    // case `?_110` => `? centésim@ decim@`
-                    1 => words.push(String::from(DIECIS[units]) + gender()),
-                    _ => {
-                        let ten = DECENAS[tens];
-                        let word = match units {
-                            // case `?_120 => `? centésim@ vigésim@`
-                            0 => String::from(ten),
-                            // case `?_122 => `? centésim@ vigésim@ segund@`
-                            _ => format!("{ten}{} {unit_word}", gender()),
-                        };
+                if tens != 0 || units != 0 {
+                    let unit_word = UNIDADES[units];
+                    let decenas = || -> String {
+                        // As lazy operation because there's no guarantees we will
+                        // inmediately use the String
+                        match units {
+                            7 => DECENAS[tens].replace('é', "e"),
+                            _ => String::from(DECENAS[tens]),
+                        }
+                    };
+                    match tens {
+                        // case `?_001` => `? primer@`
+                        0 => words.push(String::from(unit_word) + gender()),
+                        // case `?_119` => `? centésim@ decimonoven@`
+                        // case `?_110` => `? centésim@ decim@`
+                        1 => words.push(String::from(DIECIS[units]) + gender()),
+                        2 if units != 0 => words.push(
+                            // case `122 => `? centésim@ vigésim@segund@`
+                            // for DECENAS[1..=2], the unit word actually stays sticked to the
+                            // DECENAS
+                            decenas() + format!("{g}{unit_word}{g}", g = gender()).as_str(),
+                        ),
+                        _ => {
+                            let ten = decenas();
+                            let word = match units {
+                                // case `?_120 => `? centésim@ vigésim@`
+                                0 => ten,
+                                // case `?_132 => `? centésim@ trigésim@ segund@`
+                                _ => format!("{ten}{} {unit_word}", gender()),
+                            };
 
-                        words.push(word + gender());
+                            words.push(word + gender());
+                        }
                     }
                 }
             }
@@ -501,7 +715,17 @@ impl Language for Spanish {
                 if i > MILLARES.len() - 1 {
                     return Err(Num2Err::CannotConvert);
                 }
-                words.push(String::from(MILLARES[i]) + gender());
+                // from `2.b` in https://www.rae.es/dpd/ordinales
+                // Quote:
+                // ```Los ordinales complejos de la serie de los millares, los millones, los
+                // billones, etc., en la práctica inusitados, se forman prefijando al ordinal
+                // simple el cardinal que lo multiplica, y posponiendo los ordinales
+                // correspondientes a los órdenes inferiores```
+                let unit_word = match triplet {
+                    1 => String::from(""),
+                    _ => self.to_cardinal(triplet.into())?,
+                };
+                words.push(format!("{}{}{}", unit_word, MILLARES[i], gender()));
             }
         }
         if self.plural {
@@ -582,18 +806,18 @@ impl Language for Spanish {
     ///
     /// let words =
     ///     Num2Words::new(-2021).lang(Lang::Spanish).currency(Currency::USD).to_words().unwrap();
-    /// assert_eq!(words, "menos dos mil veintiún US dollars");
+    /// assert_eq!(words, "menos dos mil veintiún dólares estadounidenses");
     ///
     /// let words =
     ///     Num2Words::new(81.21).lang(Lang::Spanish).currency(Currency::USD).to_words().unwrap();
-    /// assert_eq!(words, "ochenta y un US dollars con veintiún centavos");
+    /// assert_eq!(words, "ochenta y un dólares estadounidenses con veintiún centavos");
     ///
     /// let words =
     ///     Num2Words::new(1.01).lang(Lang::Spanish).currency(Currency::USD).to_words().unwrap();
-    /// assert_eq!(words, "un US dollar con un centavo");
+    /// assert_eq!(words, "un dólar estadounidense con un centavo");
     ///
     /// let words = Num2Words::new(1).lang(Lang::Spanish).currency(Currency::USD).to_words().unwrap();
-    /// assert_eq!(words, "un US dollar");
+    /// assert_eq!(words, "un dólar estadounidense");
     /// ```
     fn to_currency(&self, num: BigFloat, currency: crate::Currency) -> Result<String, Num2Err> {
         let strip_uno_into_un = |string: String| -> String {
@@ -609,13 +833,13 @@ impl Language for Spanish {
         if num.is_nan() {
             Err(Num2Err::CannotConvert)
         } else if num.is_inf() {
-            let currency = currency.default_string(true);
+            let currency = self.currencies(currency, true);
             let inf = self.inf_to_cardinal(&num)? + "de {}";
             let word = inf.replace("{}", &currency);
             return Ok(word);
         } else if num.frac().is_zero() {
             let is_plural = num.int() != 1.into();
-            let currency = currency.default_string(is_plural);
+            let currency = self.currencies(currency, is_plural);
             let cardinal = strip_uno_into_un(self.int_to_cardinal(num)?);
             return Ok(format!("{cardinal} {currency}"));
         } else {
@@ -626,7 +850,7 @@ impl Language for Spanish {
                 self.to_currency(integral, currency)?,
                 strip_uno_into_un(self.int_to_cardinal(cents)?),
             );
-            let cents_suffix = currency.default_subunit_string("centavo{}", cents_is_plural);
+            let cents_suffix = self.cents(currency, cents_is_plural);
 
             if cents.is_zero() {
                 return Ok(int_words);
@@ -745,6 +969,38 @@ mod tests {
     }
 
     #[test]
+    fn lang_es_milliards() {
+        let es = Spanish::default();
+        assert_eq!(es.int_to_cardinal(to(1_000_000)).unwrap(), "un millón");
+        assert_eq!(es.int_to_cardinal(to(1_000_000_000)).unwrap(), "mil millones");
+        assert_eq!(es.int_to_cardinal(to(1_000_000_000_000.0f64)).unwrap(), "un billón");
+        assert_eq!(es.int_to_cardinal(to(1_000_000_000_000_000_000.0f64)).unwrap(), "un trillón");
+        assert_eq!(
+            es.int_to_cardinal(to(9_008_001_006_000_000_000_000_000_000.0f64)).unwrap(),
+            "nueve mil ocho cuatrillones mil seis trillones"
+        );
+        assert_eq!(
+            es.int_to_cardinal(to(9_008_000_001_000_000_000_000_000_000.0f64)).unwrap(),
+            "nueve mil ocho cuatrillones un trillón"
+        );
+        assert_eq!(
+            es.int_to_cardinal(to(8_007_006_005_000_000_000_000_000.0f64)).unwrap(),
+            "ocho cuatrillones siete mil seis trillones cinco mil billones"
+        );
+        assert_eq!(
+            es.int_to_cardinal(to(8_007_000_005_000_000_000_000_000.0f64)).unwrap(),
+            "ocho cuatrillones siete mil trillones cinco mil billones"
+        );
+        assert_eq!(
+            es.int_to_cardinal(to(8_007_006_000_000_000_000_000_000.0f64)).unwrap(),
+            "ocho cuatrillones siete mil seis trillones"
+        );
+        assert_eq!(
+            es.int_to_cardinal(to(8_007_000_000_001_000_000_000_000.0f64)).unwrap(),
+            "ocho cuatrillones siete mil trillones un billón"
+        );
+    }
+    #[test]
     fn lang_es_thousands() {
         let es = Spanish::default();
         // When thousands triplet is 1
@@ -805,10 +1061,22 @@ mod tests {
         let es = Spanish::default();
         let to_cardinal = Language::to_cardinal;
         assert_eq!(to_cardinal(&es, to(f64::NAN)).unwrap_err(), Num2Err::CannotConvert);
-        // Vigintillion supposedly has 63 zeroes, so anything beyond ~66 digits should fail with
-        // current impl
-        let some_big_num = BigFloat::from_u8(2).pow(&BigFloat::from_u8(230));
-        assert_eq!(to_cardinal(&es, to(some_big_num)).unwrap_err(), Num2Err::CannotConvert);
+        // unit of Vigintillion, which is at index 21 has 120 zeros, so anything beyond 120+6 digits
+        // should fail
+        let some_big_num = BigFloat::from_u8(2).pow(&BigFloat::from_u16(418));
+
+        assert_eq!(
+            to_cardinal(&es, to(some_big_num)).unwrap(), /* There's no guarantee that this
+                                                          * number is correct */
+            "seiscientos setenta y seis mil novecientos veintiún vigintillones trescientos doce \
+             mil cuarenta y uno novendecillones doscientos catorce mil quinientos sesenta y cinco \
+             octodecillones trescientos veintiseis mil setecientos sesenta y uno septendecillones \
+             doscientos setenta y cinco mil cuatrocientos veinticinco sexdecillones quinientos \
+             cincuenta y siete mil quinientos cuarenta y cuatro quindeciollones setecientos \
+             ochenta y cuatro mil trescientos cuatrodecillones"
+        );
+        let too_big_num = BigFloat::from_u8(2).pow(&BigFloat::from_u16(419));
+        assert_eq!(to_cardinal(&es, to(too_big_num)).unwrap_err(), Num2Err::CannotConvert);
 
         let to_ordinal = Language::to_ordinal;
         assert_eq!(to_ordinal(&es, to(0.001)).unwrap_err(), Num2Err::FloatingOrdinal);
@@ -875,22 +1143,18 @@ mod tests {
     fn lang_es_ordinal() {
         let es = Spanish::default().with_feminine(true);
         let ordinal = |num: i128| es.to_ordinal(to(num)).unwrap();
-        assert_eq!(ordinal(1_101_001), "primer millonésima centésima primera milésima primera");
-        assert_eq!(ordinal(2_001_022), "segunda millonésima primer milésima vigésima segunda");
-        assert_eq!(
-            ordinal(12_114_011),
-            "duodécima millonésima centésima decimocuarta milésima undécima"
-        );
+        assert_eq!(ordinal(1_101_001), "millonésima ciento unomilésima primera");
+        assert_eq!(ordinal(2_001_022), "dosmillonésima milésima vigésimasegunda");
+        assert_eq!(ordinal(12_114_011), "docemillonésima ciento catorcemilésima undécima");
         assert_eq!(
             ordinal(124_121_091),
-            "centésima vigésima cuarta millonésima centésima vigésima primera milésima nonagésima \
-             primera"
+            "ciento veinticuatromillonésima ciento veintiunomilésima nonagésima primera"
         );
         let es = Spanish::default().with_plural(true);
         let ordinal = |num: i128| es.to_ordinal(to(num)).unwrap();
         assert_eq!(
             ordinal(124_001_091),
-            "centésimo vigésimo cuarto millonésimo primer milésimo nonagésimo primeros"
+            "ciento veinticuatromillonésimo milésimo nonagésimo primeros"
         );
     }
 
