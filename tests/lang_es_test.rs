@@ -40,11 +40,11 @@ fn test_lang_es() {
                 .as_slice(),
         )
     };
-    let word = driver(Outputs::Cardinal, BigFloat::from(-821_442_524.69)).unwrap();
+    let word = driver(Outputs::Cardinal, BigFloat::from(-3_000_821_442_524.69f64)).unwrap();
     assert_eq!(
         word,
-        "ochocientos veintiún millones cuatrocientos cuarenta y dos mil quinientos veinticuatro \
-         coma seis nueve negativo"
+        "tres billones ochocientos veintiún millones cuatrocientos cuarenta y dos mil quinientos \
+         veinticuatro coma seis nueve negativo"
     );
     let word = driver(Outputs::Ordinal, BigFloat::from(-484));
     assert!(word.is_err()); // You can't get the ordinal of a negative number

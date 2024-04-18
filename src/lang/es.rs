@@ -1033,12 +1033,9 @@ mod tests {
         // This might make other tests trivial
         let es = Spanish::default();
         // Triplet == 1 inserts following milliard in singular
-        assert_eq!(es.int_to_cardinal(to(1_001_001_000)).unwrap(), "un billón un millón mil");
-        // Triplet != 1 inserts following milliard in plural
-        assert_eq!(
-            es.int_to_cardinal(to(2_002_002_000)).unwrap(),
-            "dos billones dos millones dos mil"
-        );
+        assert_eq!(es.int_to_cardinal(to(1_000_000_001_000u64)).unwrap(), "un billón mil");
+        // Following milliard in plural
+        assert_eq!(es.int_to_cardinal(to(2_002_002_000)).unwrap(), "dos mil dos millones dos mil");
         // Thousand's milliard is singular
         assert_eq!(es.int_to_cardinal(to(1_100)).unwrap(), "mil cien");
         // Thousand's milliard is plural
@@ -1051,8 +1048,8 @@ mod tests {
         // "un" is reserved for triplet == 1 in magnitudes higher than 10^3 like "un millón"
         // or "un trillón"
         assert_eq!(
-            es.int_to_cardinal(to(171_031_041_031.0)).unwrap(),
-            "ciento setenta y uno billones treinta y uno millones cuarenta y uno mil treinta y uno"
+            es.int_to_cardinal(to(1_000_000_041_031.0f64)).unwrap(),
+            "un billón cuarenta y uno mil treinta y uno"
         );
     }
 
@@ -1120,7 +1117,7 @@ mod tests {
         let es = Spanish::default();
         assert_eq!(
             es.int_to_cardinal(to(171_031_091_031.0)).unwrap(),
-            "ciento setenta y uno billones treinta y uno millones noventa y uno mil treinta y uno",
+            "ciento setenta y uno mil treinta y uno millones noventa y uno mil treinta y uno",
         );
         assert!(!es.int_to_cardinal(to(171_031_091_031.0)).unwrap().contains(" un "));
     }
@@ -1130,7 +1127,7 @@ mod tests {
         let es = Spanish::default().with_veinte(true);
         assert_eq!(
             es.int_to_cardinal(to(21_021_321_021.0)).unwrap(),
-            "veinte y un billones veinte y un millones trescientos veinte y un mil veinte y uno"
+            "veinte y un mil veinte y un millones trescientos veinte y un mil veinte y uno"
         );
         assert_eq!(es.int_to_cardinal(to(22_000_000)).unwrap(), "veinte y dos millones");
         assert_eq!(
@@ -1243,11 +1240,7 @@ mod tests {
             "ochocientos uno millones veintiún mil uno"
         );
         assert_eq!(es.int_to_cardinal(to(1_000_000)).unwrap(), "un millón");
-        assert_eq!(es.int_to_cardinal(to(1_000_000_000)).unwrap(), "un billón");
-        assert_eq!(
-            es.int_to_cardinal(to(1_001_100_001)).unwrap(),
-            "un billón un millón cien mil uno"
-        );
+        assert_eq!(es.int_to_cardinal(to(1_001_100_001)).unwrap(), "mil un millones cien mil uno");
     }
 
     #[test]
@@ -1266,7 +1259,7 @@ mod tests {
         assert_eq!(es.int_to_cardinal((-1_000_000).into()).unwrap(), "un millón negativo");
         assert_eq!(
             es.int_to_cardinal((-1_020_010_000).into()).unwrap(),
-            "un billón veinte millones diez mil negativo"
+            "mil veinte millones diez mil negativo"
         );
 
         es.set_neg_flavour(Prepended);
@@ -1274,7 +1267,7 @@ mod tests {
         assert_eq!(es.int_to_cardinal((-1_000_000).into()).unwrap(), "menos un millón");
         assert_eq!(
             es.int_to_cardinal((-1_020_010_000).into()).unwrap(),
-            "menos un billón veinte millones diez mil"
+            "menos mil veinte millones diez mil"
         );
 
         es.set_neg_flavour(BelowZero);
@@ -1282,7 +1275,7 @@ mod tests {
         assert_eq!(es.int_to_cardinal((-1_000_000).into()).unwrap(), "un millón bajo cero");
         assert_eq!(
             es.int_to_cardinal((-1_020_010_000).into()).unwrap(),
-            "un billón veinte millones diez mil bajo cero"
+            "mil veinte millones diez mil bajo cero"
         );
     }
 
