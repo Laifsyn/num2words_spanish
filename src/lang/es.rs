@@ -468,7 +468,7 @@ impl Spanish {
                 let unit_word = match (units, i) {
                     // case `1_100` => `mil cien` instead of `un mil cien`
                     // case `1_001_000` => `un millón mil` instead of `un millón un mil`
-                    // Explanation: Second triplet is always read as thousand, so we
+                    // Explanation: Odd triplets should always be read as thousand, so we
                     // don't need to say "un mil"
                     (_, i) if triplet == 1 && i > 0 => {
                         if i % 2 == 0 {
@@ -477,11 +477,6 @@ impl Spanish {
                             ""
                         }
                     }
-                    // case `001_001_100...` => `un billón un millón cien mil...` instead of
-                    // `uno billón uno millón cien mil...`
-                    // All `triplets == 1`` can can be named as "un". except for first or second
-                    // triplet
-                    (_, index) if index != 0 && triplet == 1 => "un",
                     _ => UNIDADES[units],
                 };
 
