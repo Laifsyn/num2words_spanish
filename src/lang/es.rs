@@ -651,14 +651,16 @@ impl Language for Spanish {
             _ => (), /* Nothing Happens */
         }
         let mut words = vec![];
-        let gender = || -> &'static str { if self.feminine { "a" } else { "o" } };
-        for (i, triplet) in self
-            .en_miles(num.int())
-            .into_iter()
-            .enumerate()
-            .rev()
-            .filter(|(_, triplet)| *triplet != 0)
-        {
+        let triplets = self.en_miles(num.int());
+        let gender = || -> &'static str {
+            match (self.plural, self.feminine) {
+                (true, true) => "as",
+                (true, false) => "os",
+                (false, true) => "a",
+                (false, false) => "o",
+            }
+        };
+        for (i, triplet) in triplets.iter().copied().enumerate().rev() {
             if i == 0 {
                 let hundreds = ((triplet / 100) % 10) as usize;
                 let tens = ((triplet / 10) % 10) as usize;
@@ -704,10 +706,35 @@ impl Language for Spanish {
                         }
                     }
                 }
+                continue;
             }
+
+            // let milliard_index = if i % 2 == 0 { i / 2 + 1 } else { 1 };
+            // // Triplet of the last iteration
+            // let last_triplet = triplets.get(i + 1).copied().unwrap_or(0);
+            // if i == 0 {
+            //     continue;
+            // }
+            // // Add the next Milliard if there's any.
+            // if (triplet != 0) || (last_triplet != 0 && milliard_index > 1) {
+            //     if milliard_index > MILLARES.len() - 1 {
+            //         return Err(Num2Err::CannotConvert);
+            //     }
+            //     // Boolean that checks if next Milliard is plural
+            //     let plural = triplet > 1 || last_triplet > 0;
+            //     match plural {
+            //         false => words.push(String::from(MILLAR[milliard_index])),
+            //         true => words.push(String::from(MILLARES[milliard_index])),
+            //     }
+            // }
+
+            let milliard_index = if i % 2 == 0 { i / 2 + 1 } else { 1 };
+            // Triplet of the last iteration
+            let last_triplet = triplets.get(i + 1).copied().unwrap_or(0);
+
             // Add the next Milliard if there's any.
-            if i != 0 && triplet != 0 {
-                if i > MILLARES.len() - 1 {
+            if (triplet != 0) || (last_triplet != 0 && milliard_index > 1) {
+                if milliard_index > MILLARES.len() - 1 {
                     return Err(Num2Err::CannotConvert);
                 }
                 // from `2.b` in https://www.rae.es/dpd/ordinales
@@ -716,18 +743,31 @@ impl Language for Spanish {
                 // billones, etc., en la práctica inusitados, se forman prefijando al ordinal
                 // simple el cardinal que lo multiplica, y posponiendo los ordinales
                 // correspondientes a los órdenes inferiores```
-                let unit_word = match triplet {
-                    1 => String::from(""),
-                    _ => self.to_cardinal(triplet.into())?,
+                let triplet_word = match triplet {
+                    2.. => self.to_cardinal(triplet.into())?,
+                    _ => String::from(""),
                 };
-                words.push(format!("{}{}{}", unit_word, MILLARES[i], gender()));
+                let milesimo = match milliard_index != 1 && i > 1 && last_triplet > 0 {
+                    true => "mil",
+                    false => "",
+                };
+                if milliard_index == 1 && i > 1 {
+                    continue;
+                }
+                words.push(format!(
+                    "{}{}{}{}",
+                    milesimo,
+                    triplet_word,
+                    MILLARES[milliard_index],
+                    gender()
+                ));
             }
         }
-        if self.plural {
-            if let Some(word) = words.last_mut() {
-                word.push('s');
-            }
-        }
+        // if self.plural {
+        //     if let Some(word) = words.last_mut() {
+        //         word.push('s');
+        //     }
+        // }
         Ok(words.into_iter().filter(|word| !word.is_empty()).collect::<Vec<String>>().join(" "))
     }
 
@@ -1142,6 +1182,7 @@ mod tests {
             ordinal(124_121_091),
             "ciento veinticuatromillonésima ciento veintiunomilésima nonagésima primera"
         );
+        assert_eq!(ordinal(1_000_000_000), "milmillonésima");
         let es = Spanish::default().with_plural(true);
         let ordinal = |num: i128| es.to_ordinal(to(num)).unwrap();
         assert_eq!(
