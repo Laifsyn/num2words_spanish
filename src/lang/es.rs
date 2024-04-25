@@ -709,25 +709,6 @@ impl Language for Spanish {
                 continue;
             }
 
-            // let milliard_index = if i % 2 == 0 { i / 2 + 1 } else { 1 };
-            // // Triplet of the last iteration
-            // let last_triplet = triplets.get(i + 1).copied().unwrap_or(0);
-            // if i == 0 {
-            //     continue;
-            // }
-            // // Add the next Milliard if there's any.
-            // if (triplet != 0) || (last_triplet != 0 && milliard_index > 1) {
-            //     if milliard_index > MILLARES.len() - 1 {
-            //         return Err(Num2Err::CannotConvert);
-            //     }
-            //     // Boolean that checks if next Milliard is plural
-            //     let plural = triplet > 1 || last_triplet > 0;
-            //     match plural {
-            //         false => words.push(String::from(MILLAR[milliard_index])),
-            //         true => words.push(String::from(MILLARES[milliard_index])),
-            //     }
-            // }
-
             let milliard_index = if i % 2 == 0 { i / 2 + 1 } else { 1 };
             // Triplet of the last iteration
             let last_triplet = triplets.get(i + 1).copied().unwrap_or(0);
@@ -744,6 +725,11 @@ impl Language for Spanish {
                 // simple el cardinal que lo multiplica, y posponiendo los ordinales
                 // correspondientes a los órdenes inferiores```
                 let triplet_word = match triplet {
+                    // I couldn't find any hard evidence whether bigger than single digits triplets
+                    // should also be mono-worded with the milliard, so I'll assume they don't until
+                    // otherwise because this way, something like "ciento unomilesima"(101_000)
+                    // won't accidentally be misinterpreted as "1_000".
+                    10.. => self.to_cardinal(triplet.into())? + " ",
                     2.. => self.to_cardinal(triplet.into())?,
                     _ => String::from(""),
                 };
@@ -752,6 +738,7 @@ impl Language for Spanish {
                     false => "",
                 };
                 if milliard_index == 1 && i > 1 {
+                    words.push(triplet_word);
                     continue;
                 }
                 words.push(format!(
@@ -1175,19 +1162,29 @@ mod tests {
     fn lang_es_ordinal() {
         let es = Spanish::default().with_feminine(true);
         let ordinal = |num: i128| es.to_ordinal(to(num)).unwrap();
-        assert_eq!(ordinal(1_101_001), "millonésima ciento unomilésima primera");
+        assert_eq!(ordinal(1_101_001), "millonésima ciento uno milésima primera");
         assert_eq!(ordinal(2_001_022), "dosmillonésima milésima vigésimasegunda");
-        assert_eq!(ordinal(12_114_011), "docemillonésima ciento catorcemilésima undécima");
+        assert_eq!(ordinal(12_114_011), "doce millonésima ciento catorce milésima undécima");
         assert_eq!(
             ordinal(124_121_091),
-            "ciento veinticuatromillonésima ciento veintiunomilésima nonagésima primera"
+            "ciento veinticuatro millonésima ciento veintiuno milésima nonagésima primera"
         );
         assert_eq!(ordinal(1_000_000_000), "milmillonésima");
         let es = Spanish::default().with_plural(true);
         let ordinal = |num: i128| es.to_ordinal(to(num)).unwrap();
+        assert_eq!(ordinal(101_000), "ciento uno milésimos");
+
         assert_eq!(
             ordinal(124_001_091),
-            "ciento veinticuatromillonésimo milésimo nonagésimo primeros"
+            "ciento veinticuatro millonésimos milésimos nonagésimos primeros"
+        );
+        assert_eq!(
+            ordinal(124_001_091_000_000_000_001),
+            "ciento veinticuatro trillonésimos milnoventa y uno billonésimos primeros"
+        );
+        assert_eq!(
+            ordinal(124_002_091_000_000_000_002),
+            "ciento veinticuatro trillonésimos dos milnoventa y uno billonésimos segundos"
         );
     }
 
