@@ -677,7 +677,7 @@ impl Language for Spanish {
                         // As lazy operation because there's no guarantees we will
                         // inmediately use the String
                         match units {
-                            7 => DECENAS[tens].replace('é', "e"),
+                            1..=9 if tens == 2 => DECENAS[tens].replace('é', "e"),
                             _ => String::from(DECENAS[tens]),
                         }
                     };
@@ -688,7 +688,7 @@ impl Language for Spanish {
                         // case `?_110` => `? centésim@ decim@`
                         1 => words.push(String::from(DIECIS[units]) + gender()),
                         2 if units != 0 => words.push(
-                            // case `122 => `? centésim@ vigésim@segund@`
+                            // case `122 => `? centésim@ vigesim@segund@`
                             // for DECENAS[1..=2], the unit word actually stays sticked to the
                             // DECENAS
                             decenas() + format!("{g}{unit_word}{g}", g = gender()).as_str(),
@@ -718,6 +718,11 @@ impl Language for Spanish {
                 if milliard_index > MILLARES.len() - 1 {
                     return Err(Num2Err::CannotConvert);
                 }
+                if milliard_index == 1 && i > 1 {
+                    // If we're indexing the thousand Milliard index we skip it
+                    // because We will manually append it at the next milliard
+                    continue;
+                }
                 // from `2.b` in https://www.rae.es/dpd/ordinales
                 // Quote:
                 // ```Los ordinales complejos de la serie de los millares, los millones, los
@@ -733,17 +738,25 @@ impl Language for Spanish {
                     2.. => self.to_cardinal(triplet.into())?,
                     _ => String::from(""),
                 };
-                let milesimo = match milliard_index != 1 && i > 1 && last_triplet > 0 {
-                    true => "mil",
-                    false => "",
+                // ciento cuarenta y uno  milcien millonésimo doscientos once milésimo
+                // vigesimoprimero
+
+                // ciento cuarenta y uno milcienmillonésimo doscientos oncemilésimo vigesimoprimero
+                let get_last_triplet = || -> Result<String, Num2Err> {
+                    match last_triplet {
+                        10.. => self.to_cardinal(last_triplet.into()).map(|word| word + " "),
+                        2.. => self.to_cardinal(last_triplet.into()),
+                        _ => Ok(String::from("")),
+                    }
                 };
-                if milliard_index == 1 && i > 1 {
-                    words.push(triplet_word);
-                    continue;
-                }
+                let thousand_of_milliard = match (milliard_index != 1, i > 1, last_triplet > 0) {
+                    (true, true, true) => get_last_triplet()? + "mil",
+                    (false, true, true) => unreachable!("Should be dead code"),
+                    _ => String::from(""),
+                };
                 words.push(format!(
                     "{}{}{}{}",
-                    milesimo,
+                    thousand_of_milliard,
                     triplet_word,
                     MILLARES[milliard_index],
                     gender()
@@ -1163,7 +1176,7 @@ mod tests {
         let es = Spanish::default().with_feminine(true);
         let ordinal = |num: i128| es.to_ordinal(to(num)).unwrap();
         assert_eq!(ordinal(1_101_001), "millonésima ciento uno milésima primera");
-        assert_eq!(ordinal(2_001_022), "dosmillonésima milésima vigésimasegunda");
+        assert_eq!(ordinal(2_001_022), "dosmillonésima milésima vigesimasegunda");
         assert_eq!(ordinal(12_114_011), "doce millonésima ciento catorce milésima undécima");
         assert_eq!(
             ordinal(124_121_091),
@@ -1184,7 +1197,7 @@ mod tests {
         );
         assert_eq!(
             ordinal(124_002_091_000_000_000_002),
-            "ciento veinticuatro trillonésimos dos milnoventa y uno billonésimos segundos"
+            "ciento veinticuatro trillonésimos dosmilnoventa y uno billonésimos segundos"
         );
     }
 
