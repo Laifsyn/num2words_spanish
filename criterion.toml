@@ -7,7 +7,7 @@
 #     cargo install criterion-table
 # run the following pipings for specific benchmarks
 #     cargo criterion --bench num2words --message-format=json > num2word_bench.json
-#     cat iterative_fib.json num2word_bench.json | criterion-table > BENCHMARKS.md
+#     cat num2word_bench.json | criterion-table > BENCHMARKS.md
 # Alternatively to do all at once
 #     cargo criterion --message-format=json | criterion-table > BENCHMARKS.md
 #
