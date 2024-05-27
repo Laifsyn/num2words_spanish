@@ -247,18 +247,17 @@ impl Spanish {
         Self { decimal_char, ..self }
     }
 
-    #[inline(always)]
     // Converts Integer BigFloat to a vector of u64
-    fn en_miles(&self, mut num: BigFloat) -> Vec<u64> {
-        // Doesn't check if BigFloat is Integer only
+    fn split_thousands(&self, mut num: BigFloat) -> Vec<u64> {
         let mut thousands = Vec::new();
-        let mil = 1000.into();
-        num = num.abs();
-        while !num.int().is_zero() {
+        let bf_1000 = BigFloat::from(1000);
+
+        while !num.is_zero() {
             // Insertar en Low Endian
-            thousands.push((num % mil).to_u64().expect("triplet not under 1000"));
-            num /= mil; // DivAssign
+            thousands.push((num % bf_1000).to_u64().unwrap());
+            num = num.div(&bf_1000).int();
         }
+        println!("{:?}", thousands);
         thousands
     }
 
@@ -450,7 +449,7 @@ impl Spanish {
         }
 
         let mut words = vec![];
-        let triplets = self.en_miles(num);
+        let triplets = self.split_thousands(num);
         for (i, triplet) in triplets.iter().copied().enumerate().rev() {
             let hundreds = ((triplet / 100) % 10) as usize;
             let tens = ((triplet / 10) % 10) as usize;
@@ -651,7 +650,7 @@ impl Language for Spanish {
             _ => (), /* Nothing Happens */
         }
         let mut words = vec![];
-        let triplets = self.en_miles(num.int());
+        let triplets = self.split_thousands(num.int());
         let gender = || -> &'static str {
             match (self.plural, self.feminine) {
                 (true, true) => "as",
